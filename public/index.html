@@ -7,8 +7,16 @@
             font-weight: bold;
         }
     </style>
-    <link rel="stylesheet" href="wfadaptor.css">
+    <link rel="stylesheet" href="/cockpit/css/wfadaptor.css">
     <link rel="stylesheet" href="tree_styling.css">
+    <link rel="stylesheet" href="/cockpit/css/uiOldTree.css">
+    <link rel="stylesheet" href="/cockpit/css/uiNewTree.css">
+    <script src="/js_libs/jquery.min.js"></script>
+    <script src="/js_libs/underscore.min.js"></script>
+    <script src="/cockpit/js/wfadaptor.js"></script>
+    <script src="/js_libs/util.js"></script>
+    <script src="my_jquery.js"></script>
+    <script src="frontend.js"></script>
 </head>
 <body>
 <h1>Process Tree Diff</h1>
@@ -23,8 +31,8 @@
 </div>
 
 <button onclick="uploadTrees()">Calculate Diff</button>
-<button onclick="displayOldTree()">Display Old Tree</button>
-<button onclick="displayNewTree()">Display New Tree</button>
+<button onclick="displayTrees()">Display Trees</button>
+
 
 <hr>
 
@@ -38,14 +46,5 @@
         <svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:x="http://www.w3.org/1999/xlink" id="graphcanvas2" width="1" height="1" class="svgStyle"></svg>
     </div>
 </div>
-
-<script src="frontend.js"></script>
-<script src="https://code.jquery.com/jquery-3.6.3.min.js" integrity="sha256-pvPw+upLPUjgMXY0G+8O0xUf+/Im1MZjXxxgOcBQBXU=" crossorigin="anonymous"></script>
-<script src="https://cpee.org/flow/js/wfadaptor.js"></script>
-<script src="https://cpee.org/js_libs/util.js"></script>
-<!--<script src="custommenu.js"></script>-->
-<!--<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>-->
-<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/lodash.js/0.10.0/lodash.min.js"></script>
-<script src="my_jquery.js"></script>
 </body>
 </html>

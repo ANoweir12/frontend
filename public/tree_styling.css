@@ -2,12 +2,15 @@
     display: flex;
     flex-direction: row;
 }
-#oldTree{
-    margin-right: 25px;
-}
-#newTree{
-    margin-left: 25px;
-}
-.svgStyle{
-    min-width: 300px;
-}
+
+/*#oldTree{*/
+/*    margin-right: 25px;*/
+/*}*/
+/*#newTree{*/
+/*    margin-left: 25px;*/
+/*}*/
+
+
+/*.svgStyle{*/
+/*    min-width: 300px;*/
+/*}*/
