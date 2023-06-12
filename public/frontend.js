@@ -1,7 +1,8 @@
 let globalDiffFile = '';
 let oldTreeText = '';
 let newTreeText = '';
-let cache = '<cache></cache>'
+// let cache = '<cache></cache>'
+let delArray = [];
 
 function uploadTrees() {
     const fileInput1 = document.getElementById('fileInput1');
@@ -80,6 +81,8 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
     oldXmlDoc = parser.parseFromString(oldTreeXML, "text/xml");
     newXmlDoc = parser.parseFromString(newTreeXML, "text/xml");
     cache = parser.parseFromString(cache, "text/xml");
+    let insertsArray = new Map();
+    let deleteArray = new Map();
 
 
     const diffDoc = parser.parseFromString(globalDiffFile, "text/xml");
@@ -89,8 +92,14 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
         const diffElement = diffElements[i];
         if (diffElement.tagName === "insert") {
             const newPath = diffElement.getAttribute("newPath");
-
+            const newLabel = diffElement.querySelector("label");
             const elementId = diffElement.childNodes[1].getAttribute("id");
+
+            if (newLabel) {
+                insertsArray.set(elementId, true);
+            } else {
+                insertsArray.set(elementId, false);
+            }
 
             if (newPath) {
                 const newPathArray = newPath.split("/").map(Number);
@@ -149,6 +158,12 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
 
                     depth += 1;
                 }
+                let elementId = originNode.getAttribute("id");
+                if (!originNode.getElementsByTagName("label").length) {
+                    deleteArray.set(elementId, false);
+                } else {
+                    deleteArray.set(elementId, true);
+                }
                 emptyElement.setAttribute("id", originNode.getAttribute("id"));
                 currentNode.parentNode.insertBefore(emptyElement, currentNode);
                 currentNode.parentNode.insertBefore(textElement, currentNode);
@@ -159,17 +174,17 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
         // TODO: Add logic for other diffElements here
     }
 
-    displayOneTree(oldDivId, oldSvgId, oldXmlDoc)
+    displayOneTree(oldDivId, oldSvgId, oldXmlDoc, insertsArray, deleteArray);
 
 
     delay(1000).then(() => {
-        displayOneTree(newDivId, newSvgId, newXmlDoc)
+        displayOneTree(newDivId, newSvgId, newXmlDoc, insertsArray, deleteArray);
     });
 
     // Color the trees here
 }
 
-function displayOneTree(divId, svgId, xmlDoc){
+function displayOneTree(divId, svgId, xmlDoc, insertsArray, deleteArray){
     let graphrealization = new WfAdaptor('http://localhost/cockpit/themes/extended/theme.js', function (graphrealization) {
 
         graphrealization.draw_labels = function (max, labels, shift, striped) {
@@ -227,8 +242,42 @@ function displayOneTree(divId, svgId, xmlDoc){
                 var ele = $('<div class="graphlast ' + (i % 2 == 0 ? 'odd' : 'even') + '" style="grid-column: ' + (j + 2) + '; grid-row: ' + (i + 2) + '; padding-bottom: ' + shift + 'px">&#032;</div>');
                 $(divId).append(ele);
             }
-            $(divId).find('[element-id="reserve1"]').css('background-color', 'green');
 
+            if (divId === "#newTree") {
+                insertsArray.forEach((indexIsLabel, id) => {
+                    let index = $(divId).find('[element-id=' + id + ']').index();
+                    if (indexIsLabel) {
+                        for (let j = index + 1; j < index + 4; j++) {
+                            $('#oldTree > :nth-child(' + (j) + ')').css('background-color', 'green');
+                            $('#newTree > :nth-child(' + (j) + ')').css('background-color', 'green');
+                        }
+                    } else {
+                        for (let j = index; j < index + 3; j++) {
+                            $('#oldTree > :nth-child(' + (j) + ')').css('background-color', 'green');
+                            $('#newTree > :nth-child(' + (j) + ')').css('background-color', 'green');
+                        }
+                    }
+                })
+                delArray.forEach(i => {
+                    $('#newTree > :nth-child(' + (i) + ')').css('background-color', 'red');
+                })
+            }
+            if (divId === "#oldTree") {
+                deleteArray.forEach((indexIsLabel, id) => {
+                    let index = $(divId).find('[element-id=' + id + ']').index();
+                    if (indexIsLabel) {
+                        for (let j = index + 1; j < index + 4; j++) {
+                            $('#oldTree > :nth-child(' + (j) + ')').css('background-color', 'red');
+                            delArray.push(j);
+                        }
+                    } else {
+                        for (let j = index; j < index + 3; j++) {
+                            $('#oldTree > :nth-child(' + (j) + ')').css('background-color', 'red');
+                            delArray.push(j);
+                        }
+                    }
+                })
+            }
         };
         graphrealization.set_svg_container($(svgId));
         graphrealization.set_label_container($(divId));
