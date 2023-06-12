@@ -181,6 +181,7 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
         displayOneTree(newDivId, newSvgId, newXmlDoc, insertsArray, deleteArray);
     });
 
+
     // Color the trees here
 }
 
@@ -242,10 +243,17 @@ function displayOneTree(divId, svgId, xmlDoc, insertsArray, deleteArray){
                 var ele = $('<div class="graphlast ' + (i % 2 == 0 ? 'odd' : 'even') + '" style="grid-column: ' + (j + 2) + '; grid-row: ' + (i + 2) + '; padding-bottom: ' + shift + 'px">&#032;</div>');
                 $(divId).append(ele);
             }
-
+            let totalSvgRects = Math.floor($(divId).children().length / 3) - 1;
             if (divId === "#newTree") {
                 insertsArray.forEach((indexIsLabel, id) => {
                     let index = $(divId).find('[element-id=' + id + ']').index();
+                    let recIndex = Math.abs(Math.floor(((index - 1) / 3)) - totalSvgRects);
+                    $("#graphcanvas1").children().eq(recIndex).css("fill", "green");
+                    delay(500).then(() => {
+                        $("#graphcanvas2").children().eq(recIndex).css("fill", "green");
+                    });
+
+
                     if (indexIsLabel) {
                         for (let j = index + 1; j < index + 4; j++) {
                             $('#oldTree > :nth-child(' + (j) + ')').css('background-color', 'green');
@@ -260,7 +268,14 @@ function displayOneTree(divId, svgId, xmlDoc, insertsArray, deleteArray){
                 })
                 delArray.forEach(i => {
                     $('#newTree > :nth-child(' + (i) + ')').css('background-color', 'red');
+                    let recIndex = Math.abs(Math.floor(((i - 2) / 3)) - totalSvgRects);
+                    $("#graphcanvas1").children().eq(recIndex).css("fill", "red");
+                    delay(500).then(() => {
+                        $("#graphcanvas2").children().eq(recIndex).css("fill", "red");
+                    });
+
                 })
+
             }
             if (divId === "#oldTree") {
                 deleteArray.forEach((indexIsLabel, id) => {
@@ -279,6 +294,7 @@ function displayOneTree(divId, svgId, xmlDoc, insertsArray, deleteArray){
                 })
             }
         };
+
         graphrealization.set_svg_container($(svgId));
         graphrealization.set_label_container($(divId));
         graphrealization.set_description($(xmlDoc), true);
