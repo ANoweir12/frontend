@@ -75,6 +75,7 @@ function displayTrees() {
         displayBothTrees(oldTreeText, '#oldTree', '#graphcanvas1', newTreeText, '#newTree', '#graphcanvas2')
     });
 }
+
 function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, newSvgId) {
     var parser, oldXmlDoc, newXmlDoc, cache;
     parser = new DOMParser();
@@ -152,7 +153,7 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
                         const textElement = cache.createTextNode("\n    ");
                         const commentElement = cache.createComment("Placeholder");
                         originNode.appendChild(commentElement);
-                        originNode.appendChild(textElement)
+                        originNode.appendChild(textElement);
                     }
                     originNode = originNode.childNodes[indexAdjustmentForNewTree[depth + 1] + 2 * oldPathArray[j] + 1];
 
@@ -174,130 +175,164 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
         // TODO: Add logic for other diffElements here
     }
 
-    displayOneTree(oldDivId, oldSvgId, oldXmlDoc, insertsArray, deleteArray);
-
-
-    delay(1000).then(() => {
-        displayOneTree(newDivId, newSvgId, newXmlDoc, insertsArray, deleteArray);
-    });
-
-
-    // Color the trees here
+    displayOneTree(oldDivId, oldSvgId, oldXmlDoc, insertsArray, deleteArray)
+        .then(() => {
+            return displayOneTree(newDivId, newSvgId, newXmlDoc, insertsArray, deleteArray);
+        })
+        .catch((error) => {
+            console.error(error);
+        });
 }
 
-function displayOneTree(divId, svgId, xmlDoc, insertsArray, deleteArray){
-    let graphrealization = new WfAdaptor('http://localhost/cockpit/themes/extended/theme.js', function (graphrealization) {
+function displayOneTree(divId, svgId, xmlDoc, insertsArray, deleteArray) {
+    return new Promise((resolve, reject) => {
+        let graphrealization = new WfAdaptor('http://localhost/cockpit/themes/extended/theme.js', function (graphrealization) {
 
-        graphrealization.draw_labels = function (max, labels, shift, striped) {
-            $(svgId).css('grid-row', '1/span ' + (max.row + 2));
-            if (striped == true) {
-                if (!$(divId).hasClass('striped')) {
-                    $(divId).addClass('striped');
+            graphrealization.draw_labels = function (max, labels, shift, striped) {
+                $(svgId).css('grid-row', '1/span ' + (max.row + 2));
+                if (striped == true) {
+                    if (!$(divId).hasClass('striped')) {
+                        $(divId).addClass('striped');
+                    }
+                } else {
+                    $(divId).removeClass('striped');
                 }
-            } else {
-                $(divId).removeClass('striped');
-            }
 
-            $(svgId + '.graphlabel, ' + divId + ' .graphempty, ' + divId + ' .graphlast').remove();
-            var tlabels = {};
-            var tcolumns = [];
-            var tcolumncount = {}
-            _.each(labels, function (val) {
-                if (val.label != "") {
-                    tlabels[val.row] = [];
-                    _.each(val.label, function (col) {
-                        if (!tcolumns.includes(col.column)) {
-                            tcolumns.push(col.column);
-                            tcolumncount[col.column] = 0;
-                        }
-                        if (col.value != undefined) {
-                            tcolumncount[col.column] += 1;
-                        }
-                        tlabels[val.row][tcolumns.indexOf(col.column)] = {
-                            label: col.value,
-                            type: val.tname,
-                            id: val.element_id
-                        };
-                    });
-                }
-            });
-            $(divId).css({
-                'grid-template-rows': (shift / 2) + 'px repeat(' + max.row + ', 1fr) ' + (shift / 2) + 'px',
-                'grid-template-columns': 'max-content' + (tcolumns.length > 0 ? ' repeat(' + tcolumns.length.toString() + ',max-content)' : '') + ' auto'
-            });
-            for (var i = 0; i < max.row; i++) {
-                for (var j = 0; j < tcolumns.length; j++) {
-                    if (tlabels[i + 1] != undefined && tlabels[i + 1][j] != undefined && tlabels[i + 1][j].label != undefined && tlabels[i + 1][j].label != '') {
-                        var col = tlabels[i + 1][j];
-                        var ele = $('<div class="graphlabel ' + (i % 2 == 0 ? 'odd' : 'even') + '" element-type="' + col.type + '" element-id="' + col.id + '" style="grid-column: ' + (j + 2) + '; grid-row: ' + (i + 2) + '"><span>' + col.label + '</span></div>');
-                        graphrealization.illustrator.draw.bind_event(ele, col.type, false);
-                        $(divId).append(ele);
-                    } else {
-                        if (tcolumncount[tcolumns[j]] != 0) {
-                            var ele = $('<div class="graphempty ' + (i % 2 == 0 ? 'odd' : 'even') + '" style="grid-column: ' + (j + 2) + '; grid-row: ' + (i + 2) + '; padding-bottom: ' + shift + 'px">&#032;</div>');
+                $(svgId + '.graphlabel, ' + divId + ' .graphempty, ' + divId + ' .graphlast').remove();
+                var tlabels = {};
+                var tcolumns = [];
+                var tcolumncount = {}
+                _.each(labels, function (val) {
+                    if (val.label != "") {
+                        tlabels[val.row] = [];
+                        _.each(val.label, function (col) {
+                            if (!tcolumns.includes(col.column)) {
+                                tcolumns.push(col.column);
+                                tcolumncount[col.column] = 0;
+                            }
+                            if (col.value != undefined) {
+                                tcolumncount[col.column] += 1;
+                            }
+                            tlabels[val.row][tcolumns.indexOf(col.column)] = {
+                                label: col.value,
+                                type: val.tname,
+                                id: val.element_id
+                            };
+                        });
+                    }
+                });
+                $(divId).css({
+                    'grid-template-rows': (shift / 2) + 'px repeat(' + max.row + ', 1fr) ' + (shift / 2) + 'px',
+                    'grid-template-columns': 'max-content' + (tcolumns.length > 0 ? ' repeat(' + tcolumns.length.toString() + ',max-content)' : '') + ' auto'
+                });
+                for (var i = 0; i < max.row; i++) {
+                    for (var j = 0; j < tcolumns.length; j++) {
+                        if (tlabels[i + 1] != undefined && tlabels[i + 1][j] != undefined && tlabels[i + 1][j].label != undefined && tlabels[i + 1][j].label != '') {
+                            var col = tlabels[i + 1][j];
+                            var ele = $('<div class="graphlabel ' + (i % 2 == 0 ? 'odd' : 'even') + '" element-type="' + col.type + '" element-id="' + col.id + '" style="grid-column: ' + (j + 2) + '; grid-row: ' + (i + 2) + '"><span>' + col.label + '</span></div>');
+                            graphrealization.illustrator.draw.bind_event(ele, col.type, false);
                             $(divId).append(ele);
+                        } else {
+                            if (tcolumncount[tcolumns[j]] != 0) {
+                                var ele = $('<div class="graphempty ' + (i % 2 == 0 ? 'odd' : 'even') + '" style="grid-column: ' + (j + 2) + '; grid-row: ' + (i + 2) + '; padding-bottom: ' + shift + 'px">&#032;</div>');
+                                $(divId).append(ele);
+                            }
                         }
                     }
+                    var j = tcolumns.length;
+                    var ele = $('<div class="graphlast ' + (i % 2 == 0 ? 'odd' : 'even') + '" style="grid-column: ' + (j + 2) + '; grid-row: ' + (i + 2) + '; padding-bottom: ' + shift + 'px">&#032;</div>');
+                    $(divId).append(ele);
                 }
-                var j = tcolumns.length;
-                var ele = $('<div class="graphlast ' + (i % 2 == 0 ? 'odd' : 'even') + '" style="grid-column: ' + (j + 2) + '; grid-row: ' + (i + 2) + '; padding-bottom: ' + shift + 'px">&#032;</div>');
-                $(divId).append(ele);
-            }
-            let totalSvgRects = Math.floor($(divId).children().length / 3) - 1;
-            if (divId === "#newTree") {
-                insertsArray.forEach((indexIsLabel, id) => {
-                    let index = $(divId).find('[element-id=' + id + ']').index();
-                    let recIndex = Math.abs(Math.floor(((index - 1) / 3)) - totalSvgRects);
-                    $("#graphcanvas1").children().eq(recIndex).css("fill", "green");
-                    delay(500).then(() => {
-                        $("#graphcanvas2").children().eq(recIndex).css("fill", "green");
-                    });
-
-
-                    if (indexIsLabel) {
-                        for (let j = index + 1; j < index + 4; j++) {
-                            $('#oldTree > :nth-child(' + (j) + ')').css('background-color', 'green');
-                            $('#newTree > :nth-child(' + (j) + ')').css('background-color', 'green');
+                let totalSvgRects = Math.floor($(divId).children().length / 3) - 1;
+                if (divId === "#newTree") {
+                    insertsArray.forEach((indexIsLabel, id) => {
+                        let element = $(divId).find('[element-id=' + id + ']')
+                        let index = element.index();
+                        let recIndex = Math.abs(Math.floor(((index - 1) / 3)) - totalSvgRects);
+                        if (element.hasClass('odd')) {
+                            $("#graphcanvas1").children().eq(recIndex).css("fill", "#ABF5D1");
+                        } else {
+                            $("#graphcanvas1").children().eq(recIndex).css("fill", "#87deb3");
                         }
-                    } else {
-                        for (let j = index; j < index + 3; j++) {
-                            $('#oldTree > :nth-child(' + (j) + ')').css('background-color', 'green');
-                            $('#newTree > :nth-child(' + (j) + ')').css('background-color', 'green');
-                        }
-                    }
-                })
-                delArray.forEach(i => {
-                    $('#newTree > :nth-child(' + (i) + ')').css('background-color', 'red');
-                    let recIndex = Math.abs(Math.floor(((i - 2) / 3)) - totalSvgRects);
-                    $("#graphcanvas1").children().eq(recIndex).css("fill", "red");
-                    delay(500).then(() => {
-                        $("#graphcanvas2").children().eq(recIndex).css("fill", "red");
-                    });
 
-                })
+                        delay(500).then(() => {
+                            if (element.hasClass('odd')) {
+                                $("#graphcanvas2").children().eq(recIndex).css("fill", "#ABF5D1");
+                            } else {
+                                $("#graphcanvas2").children().eq(recIndex).css("fill", "#87deb3");
+                            }
+                        });
 
-            }
-            if (divId === "#oldTree") {
-                deleteArray.forEach((indexIsLabel, id) => {
-                    let index = $(divId).find('[element-id=' + id + ']').index();
-                    if (indexIsLabel) {
-                        for (let j = index + 1; j < index + 4; j++) {
-                            $('#oldTree > :nth-child(' + (j) + ')').css('background-color', 'red');
-                            delArray.push(j);
-                        }
-                    } else {
-                        for (let j = index; j < index + 3; j++) {
-                            $('#oldTree > :nth-child(' + (j) + ')').css('background-color', 'red');
-                            delArray.push(j);
-                        }
-                    }
-                })
-            }
-        };
 
-        graphrealization.set_svg_container($(svgId));
-        graphrealization.set_label_container($(divId));
-        graphrealization.set_description($(xmlDoc), true);
+                        if (indexIsLabel) {
+                            for (let j = index + 1; j < index + 4; j++) {
+                                let $oldTreeElement = $('#oldTree > :nth-child(' + (j) + ')');
+                                let $newTreeElement = $('#newTree > :nth-child(' + (j) + ')');
+
+                                if ($oldTreeElement.hasClass('odd')) {
+                                    $oldTreeElement.css('background-color', '#ABF5D1');
+                                    $newTreeElement.css('background-color', '#ABF5D1');
+                                } else {
+                                    $oldTreeElement.css('background-color', '#87deb3');
+                                    $newTreeElement.css('background-color', '#87deb3');
+                                }
+                                // $('#oldTree > :nth-child(' + (j) + ')').css('background-color', '#ABF5D1');
+                                // $('#newTree > :nth-child(' + (j) + ')').css('background-color', '#ABF5D1');
+                            }
+                        } else {
+                            for (let j = index; j < index + 3; j++) {
+                                // $('#oldTree > :nth-child(' + (j) + ')').css('background-color', '#87deb3');
+                                // $('#newTree > :nth-child(' + (j) + ')').css('background-color', '#87deb3');
+                                let $oldTreeElement = $('#oldTree > :nth-child(' + (j) + ')');
+                                let $newTreeElement = $('#newTree > :nth-child(' + (j) + ')');
+
+                                if ($oldTreeElement.hasClass('odd')) {
+                                    $oldTreeElement.css('background-color', '#ABF5D1');
+                                    $newTreeElement.css('background-color', '#ABF5D1');
+                                } else {
+                                    $oldTreeElement.css('background-color', '#87deb3');
+                                    $newTreeElement.css('background-color', '#87deb3');
+                                }
+                            }
+                        }
+                    })
+                    delArray.forEach(i => {
+                        $('#newTree > :nth-child(' + (i) + ')').css('background-color', 'red');
+                        let recIndex = Math.abs(Math.floor(((i - 2) / 3)) - totalSvgRects);
+                        $("#graphcanvas1").children().eq(recIndex).css("fill", "red");
+                        delay(500).then(() => {
+                            $("#graphcanvas2").children().eq(recIndex).css("fill", "red");
+                        });
+
+                    })
+
+                }
+                if (divId === "#oldTree") {
+                    deleteArray.forEach((indexIsLabel, id) => {
+                        let index = $(divId).find('[element-id=' + id + ']').index();
+                        if (indexIsLabel) {
+                            for (let j = index + 1; j < index + 4; j++) {
+                                $('#oldTree > :nth-child(' + (j) + ')').css('background-color', 'red');
+                                delArray.push(j);
+                            }
+                        } else {
+                            for (let j = index; j < index + 3; j++) {
+                                $('#oldTree > :nth-child(' + (j) + ')').css('background-color', 'red');
+                                delArray.push(j);
+                            }
+                        }
+                    })
+                }
+            };
+
+            graphrealization.set_svg_container($(svgId));
+            graphrealization.set_label_container($(divId));
+            graphrealization.set_description($(xmlDoc), true);
+            resolve();
+        });
     });
 }
+
+
+
 // style="fill:green;" for <recT>
