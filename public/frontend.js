@@ -17,6 +17,7 @@ function getDomPath(el) {
                 }
                 sibCount++;
             }
+
         }
         if ( el.hasAttribute('id') && el.id != '' ) {
             stack.unshift(el.nodeName.toLowerCase() + '#' + el.id);
