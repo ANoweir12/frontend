@@ -3,14 +3,35 @@
     flex-direction: row;
 }
 
-/*#oldTree{*/
-/*    margin-right: 25px;*/
-/*}*/
-/*#newTree{*/
-/*    margin-left: 25px;*/
-/*}*/
 
+rect.diffaddodd{
+    fill: #ABF5D1 !important;
+}
 
-/*.svgStyle{*/
-/*    min-width: 300px;*/
-/*}*/
+rect.diffaddeven{
+    fill: #87DEB3 !important;
+}
+
+div.diffaddodd{
+    background-color: #ABF5D1 !important;
+}
+
+div.diffaddeven{
+    background-color: #87DEB3 !important;
+}
+
+rect.diffremoveodd{
+    fill: #FA9D9D !important;
+}
+
+rect.diffremoveeven{
+    fill: #FA8383 !important;
+}
+
+div.diffremoveodd{
+    background-color: #FA9D9D !important;
+}
+
+div.diffremoveeven{
+    background-color: #FA8383 !important;
+}

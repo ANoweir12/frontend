@@ -1,8 +1,34 @@
 let globalDiffFile = '';
 let oldTreeText = '';
 let newTreeText = '';
-// let cache = '<cache></cache>'
 let delArray = [];
+
+function getDomPath(el) {
+    var stack = [];
+    while ( el.parentNode != null ) {
+        var sibCount = 0;
+        var sibIndex = 0;
+        for ( var i = 0; i < el.parentNode.childNodes.length; i++ ) {
+            var sib = el.parentNode.childNodes[i];
+            if ( sib.nodeName == el.nodeName ) {
+                if ( sib === el ) {
+                    sibIndex = sibCount;
+                    break;
+                }
+                sibCount++;
+            }
+        }
+        if ( el.hasAttribute('id') && el.id != '' ) {
+            stack.unshift(el.nodeName.toLowerCase() + '#' + el.id);
+        } else if ( sibCount > 1 ) {
+            stack.unshift(el.nodeName.toLowerCase() + ':eq(' + sibIndex + ')');
+        } else {
+            stack.unshift(el.nodeName.toLowerCase());
+        }
+        el = el.parentNode;
+    }
+    return stack.slice(4).join(' > '); // removes the html element
+}
 
 function uploadTrees() {
     const fileInput1 = document.getElementById('fileInput1');
@@ -18,27 +44,35 @@ function uploadTrees() {
     const reader1 = new FileReader();
     const reader2 = new FileReader();
 
-    reader1.onload = function (event) {
-        const content1 = event.target.result;
-        reader2.readAsText(files2[0]);
-        reader2.onload = function (event) {
-            const content2 = event.target.result;
+    let promise = new Promise((resolve, reject) => {
+        reader1.onload = function (event) {
+            const content1 = event.target.result;
+            reader2.readAsText(files2[0]);
+            let promise2 = new Promise(resolve2 => {
+                reader2.onload = function (event) {
+                    const content2 = event.target.result;
 
-            // Combine the contents with '&'
-            const combinedContent = content1.trim() + '&' + content2.trim();
-            oldTreeText = content1;
-            newTreeText = content2;
+                    // Combine the contents with '&'
+                    const combinedContent = content1.trim() + '&' + content2.trim();
+                    oldTreeText = content1;
+                    newTreeText = content2;
 
-            // Send the combined content to the backend server
-            sendTreesToServer(combinedContent);
+                    // Send the combined content to the backend server
+                    new Promise(resolve => {
+                        sendTreesToServer(combinedContent, resolve)
+                    }).then(() => resolve2());
+                }
+            })
+
+            promise2.then(() => resolve());
         }
-    }
-
+    })
     reader1.readAsText(files1[0]);
+    return promise;
 }
 
 // Function to send the process trees to the backend server
-function sendTreesToServer(content) {
+function sendTreesToServer(content, resolve) {
     const url = new URL("http://localhost:3000")
     fetch('/cpeediff/diff', {
         headers: {
@@ -52,6 +86,7 @@ function sendTreesToServer(content) {
             globalDiffFile = diffFile;
             // Display the diff file
             displayDiffFile(diffFile);
+            resolve();
         })
         .catch(error => {
             console.error('Error:', error);
@@ -65,13 +100,8 @@ function displayDiffFile(diffFile) {
     diffOutput.textContent = diffFile;
 }
 
-function delay(time) {
-    return new Promise(resolve => setTimeout(resolve, time));
-}
-
 function displayTrees() {
-    uploadTrees();
-    delay(500).then(() => {
+    uploadTrees().then(() => {
         displayBothTrees(oldTreeText, '#oldTree', '#graphcanvas1', newTreeText, '#newTree', '#graphcanvas2')
     });
 }
@@ -229,98 +259,38 @@ function displayOneTree(divId, svgId, xmlDoc, insertsArray, deleteArray) {
                     for (var j = 0; j < tcolumns.length; j++) {
                         if (tlabels[i + 1] != undefined && tlabels[i + 1][j] != undefined && tlabels[i + 1][j].label != undefined && tlabels[i + 1][j].label != '') {
                             var col = tlabels[i + 1][j];
-                            var ele = $('<div class="graphlabel ' + (i % 2 == 0 ? 'odd' : 'even') + '" element-type="' + col.type + '" element-id="' + col.id + '" style="grid-column: ' + (j + 2) + '; grid-row: ' + (i + 2) + '"><span>' + col.label + '</span></div>');
+                            var ele = $('<div element-row="'+i+'" class="graphlabel ' + (i % 2 == 0 ? 'odd' : 'even') + '" element-type="' + col.type + '" element-id="' + col.id + '" style="grid-column: ' + (j + 2) + '; grid-row: ' + (i + 2) + '"><span>' + col.label + '</span></div>');
                             graphrealization.illustrator.draw.bind_event(ele, col.type, false);
                             $(divId).append(ele);
                         } else {
                             if (tcolumncount[tcolumns[j]] != 0) {
-                                var ele = $('<div class="graphempty ' + (i % 2 == 0 ? 'odd' : 'even') + '" style="grid-column: ' + (j + 2) + '; grid-row: ' + (i + 2) + '; padding-bottom: ' + shift + 'px">&#032;</div>');
+                                var ele = $('<div element-row="'+i+'" class="graphempty ' + (i % 2 == 0 ? 'odd' : 'even') + '" style="grid-column: ' + (j + 2) + '; grid-row: ' + (i + 2) + '; padding-bottom: ' + shift + 'px">&#032;</div>');
                                 $(divId).append(ele);
                             }
                         }
                     }
                     var j = tcolumns.length;
-                    var ele = $('<div class="graphlast ' + (i % 2 == 0 ? 'odd' : 'even') + '" style="grid-column: ' + (j + 2) + '; grid-row: ' + (i + 2) + '; padding-bottom: ' + shift + 'px">&#032;</div>');
+                    var ele = $('<div element-row="'+i+'" class="graphlast ' + (i % 2 == 0 ? 'odd' : 'even') + '" style="grid-column: ' + (j + 2) + '; grid-row: ' + (i + 2) + '; padding-bottom: ' + shift + 'px">&#032;</div>');
                     $(divId).append(ele);
                 }
-                let totalSvgRects = Math.floor($(divId).children().length / 3) - 1;
                 if (divId === "#newTree") {
                     insertsArray.forEach((indexIsLabel, id) => {
                         let element = $(divId).find('[element-id=' + id + ']')
-                        let index = element.index();
-                        let recIndex = Math.abs(Math.floor(((index - 1) / 3)) - totalSvgRects);
-                        if (element.hasClass('odd')) {
-                            $("#graphcanvas1").children().eq(recIndex).css("fill", "#ABF5D1");
-                        } else {
-                            $("#graphcanvas1").children().eq(recIndex).css("fill", "#87deb3");
-                        }
-
-                        delay(500).then(() => {
-                            if (element.hasClass('odd')) {
-                                $("#graphcanvas2").children().eq(recIndex).css("fill", "#ABF5D1");
-                            } else {
-                                $("#graphcanvas2").children().eq(recIndex).css("fill", "#87deb3");
-                            }
-                        });
-
-
-                        if (indexIsLabel) {
-                            for (let j = index + 1; j < index + 4; j++) {
-                                let $oldTreeElement = $('#oldTree > :nth-child(' + (j) + ')');
-                                let $newTreeElement = $('#newTree > :nth-child(' + (j) + ')');
-
-                                if ($oldTreeElement.hasClass('odd')) {
-                                    $oldTreeElement.css('background-color', '#ABF5D1');
-                                    $newTreeElement.css('background-color', '#ABF5D1');
-                                } else {
-                                    $oldTreeElement.css('background-color', '#87deb3');
-                                    $newTreeElement.css('background-color', '#87deb3');
-                                }
-                                // $('#oldTree > :nth-child(' + (j) + ')').css('background-color', '#ABF5D1');
-                                // $('#newTree > :nth-child(' + (j) + ')').css('background-color', '#ABF5D1');
-                            }
-                        } else {
-                            for (let j = index; j < index + 3; j++) {
-                                // $('#oldTree > :nth-child(' + (j) + ')').css('background-color', '#87deb3');
-                                // $('#newTree > :nth-child(' + (j) + ')').css('background-color', '#87deb3');
-                                let $oldTreeElement = $('#oldTree > :nth-child(' + (j) + ')');
-                                let $newTreeElement = $('#newTree > :nth-child(' + (j) + ')');
-
-                                if ($oldTreeElement.hasClass('odd')) {
-                                    $oldTreeElement.css('background-color', '#ABF5D1');
-                                    $newTreeElement.css('background-color', '#ABF5D1');
-                                } else {
-                                    $oldTreeElement.css('background-color', '#87deb3');
-                                    $newTreeElement.css('background-color', '#87deb3');
-                                }
-                            }
-                        }
-                    })
-                    delArray.forEach(i => {
-                        $('#newTree > :nth-child(' + (i) + ')').css('background-color', 'red');
-                        let recIndex = Math.abs(Math.floor(((i - 2) / 3)) - totalSvgRects);
-                        $("#graphcanvas1").children().eq(recIndex).css("fill", "red");
-                        delay(500).then(() => {
-                            $("#graphcanvas2").children().eq(recIndex).css("fill", "red");
-                        });
-
+                        let row = element.last().attr('element-row');
+                        let myclass = element.last().hasClass('odd') ? "diffaddodd" : "diffaddeven";
+                        $(document).find('[element-row=' + row + ']').addClass(myclass);
                     })
 
+                    delArray.forEach(element => {
+                        let row = element.last().attr('element-row');
+                        let myclass = element.last().hasClass('odd') ? "diffremoveodd" : "diffremoveeven";
+                        $(document).find('[element-row=' + row + ']').addClass(myclass);
+                    })
                 }
                 if (divId === "#oldTree") {
                     deleteArray.forEach((indexIsLabel, id) => {
-                        let index = $(divId).find('[element-id=' + id + ']').index();
-                        if (indexIsLabel) {
-                            for (let j = index + 1; j < index + 4; j++) {
-                                $('#oldTree > :nth-child(' + (j) + ')').css('background-color', 'red');
-                                delArray.push(j);
-                            }
-                        } else {
-                            for (let j = index; j < index + 3; j++) {
-                                $('#oldTree > :nth-child(' + (j) + ')').css('background-color', 'red');
-                                delArray.push(j);
-                            }
-                        }
+                        let element = $(divId).find('[element-id=' + id + ']')
+                        delArray.push(element)
                     })
                 }
             };
