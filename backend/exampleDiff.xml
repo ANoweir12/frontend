@@ -1,0 +1,16 @@
+<delta cost="7"> 
+    <insert newPath="/1"> 
+        <call endpoint="reserve"> 
+            <parameters> 
+                <label>Reserve items</label>
+                <method>:post</method> 
+                <arguments> 
+                    <items>data.items</items>
+                </arguments>
+            </parameters> 
+        </call> 
+    </insert> 
+    <insert newPath="/2"> 
+        <manipulate>data.shipped = false;</manipulate> 
+    </insert> 
+</delta>
