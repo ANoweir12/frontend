@@ -35,3 +35,35 @@ div.diffremoveodd{
 div.diffremoveeven{
     background-color: #FA8383 !important;
 }
+
+rect.diffmoveodd{
+    fill: #92ceec !important;
+}
+
+rect.diffmoveeven{
+    fill: #7eb3cd !important;
+}
+
+div.diffmoveodd{
+    background-color: #92ceec !important;
+}
+
+div.diffmoveeven{
+    background-color: #7eb3cd !important;
+}
+
+rect.diffupdateodd{
+    fill: #e3e372 !important;
+}
+
+rect.diffupdateeven{
+    fill: #cdcd67 !important;
+}
+
+div.diffupdateodd{
+    background-color: #e3e372 !important;
+}
+
+div.diffupdateeven{
+    background-color: #cdcd67 !important;
+}

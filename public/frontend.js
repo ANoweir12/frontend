@@ -2,6 +2,9 @@ let globalDiffFile = '';
 let oldTreeText = '';
 let newTreeText = '';
 let delArray = [];
+let delMoveArray = [];
+let updArray = [];
+let cache = '<cache></cache>'
 
 function getDomPath(el) {
     var stack = [];
@@ -115,11 +118,18 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
     cache = parser.parseFromString(cache, "text/xml");
     let insertsArray = new Map();
     let deleteArray = new Map();
-
+    let moveOldArray = new Map();
+    let moveNewArray = new Map();
+    let updateArray = new Map();
 
     const diffDoc = parser.parseFromString(globalDiffFile, "text/xml");
     const diffElements = diffDoc.getElementsByTagName("*");
     let indexAdjustmentForNewTree = [0];
+    let indexAdjustmentForMoveOldTree = [0];
+    // Always starts at 2 (= +1 index), as newPath assumes that the node does not exist anymore at oldPath
+    let indexAdjustmentForMoveNewTree = [2];
+
+
     for (let i = 0; i < diffElements.length; i++) {
         const diffElement = diffElements[i];
         if (diffElement.tagName === "insert") {
@@ -203,19 +213,131 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
 
             }
         }
-        // TODO: Add logic for other diffElements here
+        if (diffElement.tagName === "move") {
+            const oldPath = diffElement.getAttribute("oldPath");
+            const newPath = diffElement.getAttribute("newPath");
+            let elementId;
+            let depthOld = 0;
+            let depthNew = 0;
+
+            if (oldPath) {
+                const oldPathArray = oldPath.split("/").map(Number);
+
+                const emptyElement = cache.createElement("empty");
+                const textElement = cache.createTextNode("\n    ");
+
+                let originNode = oldXmlDoc.getRootNode().childNodes[0];
+                let currentNode = newXmlDoc.getRootNode().childNodes[0];
+
+                for (let j = 1; j < oldPathArray.length; j++) {
+                    if (!indexAdjustmentForMoveOldTree[depthOld + 1]) {
+                        indexAdjustmentForMoveOldTree[depthOld + 1] = 0;
+                    }
+                    if (currentNode.childNodes.length <= indexAdjustmentForMoveOldTree[depthOld + 1] + 2 * oldPathArray[j] + 1) {
+                        const textElement = cache.createTextNode("\n    ");
+                        const commentElement = cache.createComment("Placeholder");
+                        currentNode.appendChild(commentElement);
+                        currentNode.appendChild(textElement)
+                    }
+                    currentNode = currentNode.childNodes[indexAdjustmentForMoveOldTree[depthOld + 1] + 2 * oldPathArray[j] + 1];
+
+                    if (originNode.childNodes.length <= indexAdjustmentForMoveOldTree[depthOld + 1] + 2 * oldPathArray[j] + 1) {
+                        const textElement = cache.createTextNode("\n    ");
+                        const commentElement = cache.createComment("Placeholder");
+                        originNode.appendChild(commentElement);
+                        originNode.appendChild(textElement);
+                    }
+                    originNode = originNode.childNodes[indexAdjustmentForMoveOldTree[depthOld + 1] + 2 * oldPathArray[j] + 1];
+
+                    depthOld += 1;
+                }
+                elementId = originNode.getAttribute("id");
+                if (!originNode.getElementsByTagName("label").length) {
+                    moveOldArray.set(elementId, false);
+                    moveNewArray.set(elementId, false)
+                } else {
+                    moveOldArray.set(elementId, true);
+                    moveNewArray.set(elementId, true)
+                }
+                emptyElement.setAttribute("id", originNode.getAttribute("id"));
+                currentNode.parentNode.insertBefore(emptyElement, currentNode);
+                currentNode.parentNode.insertBefore(textElement, currentNode);
+                indexAdjustmentForMoveOldTree[depthOld] += 2;
+            }
+            if (newPath) {
+                const newPathArray = newPath.split("/").map(Number);
+
+                const emptyElement = cache.createElement("empty");
+                const textElement = cache.createTextNode("\n    ");
+
+                let originNode = oldXmlDoc.getRootNode().childNodes[0];
+                let newNode = newXmlDoc.getRootNode().childNodes[0];
+
+                for (let j = 1; j < newPathArray.length; j++) {
+                    if (!indexAdjustmentForMoveNewTree[depthNew + 1]) {
+                        indexAdjustmentForMoveNewTree[depthNew + 1] = 2;
+                    }
+                    if (newNode.childNodes.length <= indexAdjustmentForMoveNewTree[depthNew + 1] + 2 * newPathArray[j] + 1) {
+                        const textElement = cache.createTextNode("\n    ");
+                        const commentElement = cache.createComment("Placeholder");
+                        newNode.appendChild(commentElement);
+                        newNode.appendChild(textElement)
+                    }
+                    newNode = newNode.childNodes[indexAdjustmentForMoveNewTree[depthNew + 1] + 2 * newPathArray[j] + 1];
+
+                    if (originNode.childNodes.length <= indexAdjustmentForMoveNewTree[depthNew + 1] + 2 * newPathArray[j] + 1) {
+                        const textElement = cache.createTextNode("\n    ");
+                        const commentElement = cache.createComment("Placeholder");
+                        originNode.appendChild(commentElement);
+                        originNode.appendChild(textElement);
+                    }
+                    originNode = originNode.childNodes[indexAdjustmentForMoveNewTree[depthNew + 1] + 2 * newPathArray[j] + 1];
+
+                    depthNew += 1;
+                }
+                elementId = newNode.getAttribute("id");
+                emptyElement.setAttribute("id", newNode.getAttribute("id"));
+                originNode.parentNode.insertBefore(emptyElement, originNode);
+                originNode.parentNode.insertBefore(textElement, originNode);
+                indexAdjustmentForMoveNewTree[depthNew] += 2;
+            }
+        }
+        if (diffElement.tagName === "update") {
+            const oldPath = diffElement.getAttribute("oldPath");
+
+            if (oldPath) {
+                const oldPathArray = oldPath.split("/").map(Number);
+
+
+                let currentNode = oldXmlDoc.getRootNode().childNodes[0];
+                for (let j = 1; j < oldPathArray.length; j++) {
+                    if (currentNode.childNodes.length <= 2 * oldPathArray[j] + 1) {
+                        const textElement = cache.createTextNode("\n    ");
+                        const commentElement = cache.createComment("Placeholder");
+                        currentNode.appendChild(commentElement);
+                        currentNode.appendChild(textElement)
+                    }
+                    if (currentNode.childNodes[2 * oldPathArray[j] + 1].tagName === "parameters" || currentNode.childNodes[2 * oldPathArray[j] + 1].tagName === "code") {
+                        break;
+                    }
+                    currentNode = currentNode.childNodes[2 * oldPathArray[j] + 1];
+                }
+                let elementId = currentNode.getAttribute("id");
+                updateArray.set(elementId, true)
+            }
+        }
     }
 
-    displayOneTree(oldDivId, oldSvgId, oldXmlDoc, insertsArray, deleteArray)
+    displayOneTree(oldDivId, oldSvgId, oldXmlDoc, insertsArray, deleteArray, moveOldArray, moveNewArray, updateArray)
         .then(() => {
-            return displayOneTree(newDivId, newSvgId, newXmlDoc, insertsArray, deleteArray);
+            return displayOneTree(newDivId, newSvgId, newXmlDoc, insertsArray, deleteArray, moveOldArray, moveNewArray, updateArray);
         })
         .catch((error) => {
             console.error(error);
         });
 }
 
-function displayOneTree(divId, svgId, xmlDoc, insertsArray, deleteArray) {
+function displayOneTree(divId, svgId, xmlDoc, insertsArray, deleteArray, moveOldArray, moveNewArray, updateArray) {
     return new Promise((resolve, reject) => {
         let graphrealization = new WfAdaptor('http://localhost/cockpit/themes/extended/theme.js', function (graphrealization) {
 
@@ -282,9 +404,34 @@ function displayOneTree(divId, svgId, xmlDoc, insertsArray, deleteArray) {
                         $(document).find('[element-row=' + row + ']').addClass(myclass);
                     })
 
+                    moveNewArray.forEach((indexIsLabel, id) => {
+                        let element = $(divId).find('[element-id=' + id + ']')
+                        let row = element.last().attr('element-row');
+                        let myclass = element.last().hasClass('odd') ? "diffmoveodd" : "diffmoveeven";
+                        $(document).find('[element-row=' + row + ']').addClass(myclass);
+                    })
+
+                    updateArray.forEach((indexIsLabel, id) => {
+                        let element = $(divId).find('[element-id=' + id + ']')
+                        let row = element.last().attr('element-row');
+                        let myclass = element.last().hasClass('odd') ? "diffupdateodd" : "diffupdateeven";
+                        $(document).find('[element-row=' + row + ']').addClass(myclass);
+                    })
+
                     delArray.forEach(element => {
                         let row = element.last().attr('element-row');
                         let myclass = element.last().hasClass('odd') ? "diffremoveodd" : "diffremoveeven";
+                        $(document).find('[element-row=' + row + ']').addClass(myclass);
+                    })
+
+                    delMoveArray.forEach(element => {
+                        let row = element.last().attr('element-row');
+                        let myclass = element.last().hasClass('odd') ? "diffmoveodd" : "diffmoveeven";
+                        $(document).find('[element-row=' + row + ']').addClass(myclass);
+                    })
+                    updArray.forEach(element => {
+                        let row = element.last().attr('element-row');
+                        let myclass = element.last().hasClass('odd') ? "diffupdateodd" : "diffupdateeven";
                         $(document).find('[element-row=' + row + ']').addClass(myclass);
                     })
                 }
@@ -292,6 +439,14 @@ function displayOneTree(divId, svgId, xmlDoc, insertsArray, deleteArray) {
                     deleteArray.forEach((indexIsLabel, id) => {
                         let element = $(divId).find('[element-id=' + id + ']')
                         delArray.push(element)
+                    })
+                    moveOldArray.forEach((indexIsLabel, id) => {
+                        let element = $(divId).find('[element-id=' + id + ']')
+                        delMoveArray.push(element)
+                    })
+                    updateArray.forEach((indexIsLabel, id) => {
+                        let element = $(divId).find('[element-id=' + id + ']')
+                        updArray.push(element)
                     })
                 }
             };
