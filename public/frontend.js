@@ -233,21 +233,24 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
                     if (!indexAdjustmentForMoveOldTree[depthOld + 1]) {
                         indexAdjustmentForMoveOldTree[depthOld + 1] = 0;
                     }
-                    if (currentNode.childNodes.length <= indexAdjustmentForMoveOldTree[depthOld + 1] + 2 * oldPathArray[j] + 1) {
+                    if (!indexAdjustmentForNewTree[depthOld + 1]) {
+                        indexAdjustmentForNewTree[depthOld + 1] = 0;
+                    }
+                    if (currentNode.childNodes.length <= indexAdjustmentForNewTree[depthOld + 1] + indexAdjustmentForMoveOldTree[depthOld + 1] + 2 * oldPathArray[j] + 1) {
                         const textElement = cache.createTextNode("\n    ");
                         const commentElement = cache.createComment("Placeholder");
                         currentNode.appendChild(commentElement);
                         currentNode.appendChild(textElement)
                     }
-                    currentNode = currentNode.childNodes[indexAdjustmentForMoveOldTree[depthOld + 1] + 2 * oldPathArray[j] + 1];
+                    currentNode = currentNode.childNodes[indexAdjustmentForNewTree[depthOld + 1] + indexAdjustmentForMoveOldTree[depthOld + 1] + 2 * oldPathArray[j] + 1];
 
-                    if (originNode.childNodes.length <= indexAdjustmentForMoveOldTree[depthOld + 1] + 2 * oldPathArray[j] + 1) {
+                    if (originNode.childNodes.length <= indexAdjustmentForNewTree[depthOld + 1] + indexAdjustmentForMoveOldTree[depthOld + 1] + 2 * oldPathArray[j] + 1) {
                         const textElement = cache.createTextNode("\n    ");
                         const commentElement = cache.createComment("Placeholder");
                         originNode.appendChild(commentElement);
                         originNode.appendChild(textElement);
                     }
-                    originNode = originNode.childNodes[indexAdjustmentForMoveOldTree[depthOld + 1] + 2 * oldPathArray[j] + 1];
+                    originNode = originNode.childNodes[indexAdjustmentForNewTree[depthOld + 1] + indexAdjustmentForMoveOldTree[depthOld + 1] + 2 * oldPathArray[j] + 1];
 
                     depthOld += 1;
                 }
@@ -277,21 +280,24 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
                     if (!indexAdjustmentForMoveNewTree[depthNew + 1]) {
                         indexAdjustmentForMoveNewTree[depthNew + 1] = 2;
                     }
-                    if (newNode.childNodes.length <= indexAdjustmentForMoveNewTree[depthNew + 1] + 2 * newPathArray[j] + 1) {
+                    if (!indexAdjustmentForNewTree[depthNew + 1]) {
+                        indexAdjustmentForNewTree[depthNew + 1] = 0;
+                    }
+                    if (newNode.childNodes.length <= indexAdjustmentForNewTree[depthNew + 1] + indexAdjustmentForMoveNewTree[depthNew + 1] + 2 * newPathArray[j] + 1) {
                         const textElement = cache.createTextNode("\n    ");
                         const commentElement = cache.createComment("Placeholder");
                         newNode.appendChild(commentElement);
                         newNode.appendChild(textElement)
                     }
-                    newNode = newNode.childNodes[indexAdjustmentForMoveNewTree[depthNew + 1] + 2 * newPathArray[j] + 1];
+                    newNode = newNode.childNodes[indexAdjustmentForNewTree[depthNew + 1] + indexAdjustmentForMoveNewTree[depthNew + 1] + 2 * newPathArray[j] + 1];
 
-                    if (originNode.childNodes.length <= indexAdjustmentForMoveNewTree[depthNew + 1] + 2 * newPathArray[j] + 1) {
+                    if (originNode.childNodes.length <= indexAdjustmentForNewTree[depthNew + 1] + indexAdjustmentForMoveNewTree[depthNew + 1] + 2 * newPathArray[j] + 1) {
                         const textElement = cache.createTextNode("\n    ");
                         const commentElement = cache.createComment("Placeholder");
                         originNode.appendChild(commentElement);
                         originNode.appendChild(textElement);
                     }
-                    originNode = originNode.childNodes[indexAdjustmentForMoveNewTree[depthNew + 1] + 2 * newPathArray[j] + 1];
+                    originNode = originNode.childNodes[indexAdjustmentForNewTree[depthNew + 1] + indexAdjustmentForMoveNewTree[depthNew + 1] + 2 * newPathArray[j] + 1];
 
                     depthNew += 1;
                 }
