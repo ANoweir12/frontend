@@ -336,7 +336,10 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
 
     displayOneTree(oldDivId, oldSvgId, oldXmlDoc, insertsArray, deleteArray, moveOldArray, moveNewArray, updateArray)
         .then(() => {
-            return displayOneTree(newDivId, newSvgId, newXmlDoc, insertsArray, deleteArray, moveOldArray, moveNewArray, updateArray);
+            displayOneTree(newDivId, newSvgId, newXmlDoc, insertsArray, deleteArray, moveOldArray, moveNewArray, updateArray).then(() => {
+                document.getElementById("oldTree").innerHTML += "";
+                document.getElementById("newTree").innerHTML += "";
+            });
         })
         .catch((error) => {
             console.error(error);
@@ -348,7 +351,22 @@ function displayOneTree(divId, svgId, xmlDoc, insertsArray, deleteArray, moveOld
         let graphrealization = new WfAdaptor('http://localhost/cockpit/themes/extended/theme.js', function (graphrealization) {
 
             graphrealization.draw_labels = function (max, labels, shift, striped) {
+                // edit labels here
+
                 $(svgId).css('grid-row', '1/span ' + (max.row + 2));
+
+                var patternOdd = $('<pattern id="diagonalHatchOdd" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(135 0 0)" width="35">\n' +
+                    '  <rect x="0" y="0" height="10" style="fill:#e3e372" width="35"></rect>\n' +
+                    '  <line x1="0" y1="0" x2="0" y2="10" style="stroke:#92ceec; stroke-width:35"></line>\n' +
+                    '</pattern>');
+                var patternEven = $('<pattern id="diagonalHatchEven" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(135 0 0)" width="35">\n' +
+                    '  <rect x="0" y="0" height="10" style="fill:#cdcd67" width="35"></rect>\n' +
+                    '  <line x1="0" y1="0" x2="0" y2="10" style="stroke:#7eb3cd; stroke-width:35"></line>\n' +
+                    '</pattern>');
+
+                $(svgId).prepend(patternOdd);
+                $(svgId).prepend(patternEven);
+
                 if (striped == true) {
                     if (!$(divId).hasClass('striped')) {
                         $(divId).addClass('striped');

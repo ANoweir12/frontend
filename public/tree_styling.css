@@ -67,3 +67,23 @@ div.diffupdateodd{
 div.diffupdateeven{
     background-color: #cdcd67 !important;
 }
+
+rect.diffupdateodd.diffmoveodd{
+    fill: url(#diagonalHatchOdd) !important;
+}
+
+rect.diffupdateeven.diffmoveeven{
+    fill: url(#diagonalHatchEven) !important;
+}
+
+div.diffupdateodd.diffmoveodd{
+    background-image: linear-gradient(45deg, #e3e372 25%, transparent 25%, transparent 50%, #e3e372 50%, #e3e372 75%, transparent 75%, #92ceec);
+    background-size: 50px 50px;
+    background-color: #92ceec !important;
+}
+
+div.diffupdateeven.diffmoveeven{
+    background-image: linear-gradient(45deg, #cdcd67 25%, transparent 25%, transparent 50%, #cdcd67 50%, #cdcd67 75%, transparent 75%, #7eb3cd);
+    background-size: 50px 50px;
+    background-color: #7eb3cd !important;
+}
