@@ -31,7 +31,6 @@
             </parameters>
         </call>
     </loop>
-<!--    <manipulate id="manipul3">data.shipped = false;</manipulate>-->
 
     <manipulate id="manipul2">data.shipped = true;</manipulate>
 </description>

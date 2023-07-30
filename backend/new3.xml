@@ -21,12 +21,11 @@
             </parameters>
         </call>
     </loop>
-<!--    <manipulate id="manipul3">data.shipped = false;</manipulate>-->
 
     <manipulate id="manipul2">data.shipped = true;</manipulate>
     <call id="reserve1" endpoint="reserve">
         <parameters>
-            <label>Reserve items</label>
+            <label>Reserve item</label>
             <method>:post</method>
             <arguments>
                 <items>data.items</items>

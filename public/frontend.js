@@ -149,7 +149,9 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
     var parser, oldXmlDoc, newXmlDoc, cache;
     parser = new DOMParser();
     oldXmlDoc = parser.parseFromString(oldTreeXML, "text/xml");
+    removeCommentsFromXmlDoc(oldXmlDoc);
     newXmlDoc = parser.parseFromString(newTreeXML, "text/xml");
+    removeCommentsFromXmlDoc(newXmlDoc);
     cache = parser.parseFromString(cache, "text/xml");
     let insertsArray = new Map();
     let deleteArray = new Map();
@@ -170,7 +172,7 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
         if (diffElement.tagName === "insert") {
             const newPath = diffElement.getAttribute("newPath");
             const newLabel = diffElement.querySelector("label");
-            const elementId = diffElement.children[0].getAttribute("id");
+            const elementId = diffElement.childNodes[1].getAttribute("id");
 
             if (newLabel) {
                 insertsArray.set(elementId, true);
@@ -183,7 +185,8 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
 
                 const emptyElement = cache.createElement("empty");
                 const textElement = cache.createTextNode("\n    ");
-                let currentNode = oldXmlDoc.getRootNode().children[0];
+
+                let currentNode = oldXmlDoc.getRootNode().childNodes[0];
                 for (let j = 1; j < newPathArray.length; j++) {
                     if (currentNode.childNodes.length <= 2 * newPathArray[j] + 1) {
                         const textElement = cache.createTextNode("\n    ");
@@ -191,12 +194,7 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
                         currentNode.appendChild(commentElement);
                         currentNode.appendChild(textElement)
                     }
-                    console.log(currentNode.children);
-                    console.log(currentNode.childNodes);
-                    console.log(newPathArray[j]);
                     currentNode = currentNode.childNodes[2 * newPathArray[j] + 1];
-                    console.log(currentNode);
-
                 }
 
                 emptyElement.setAttribute('id', elementId);
@@ -354,7 +352,7 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
                     depthNew += 1;
                 }
                 elementId = newNode.getAttribute("id");
-                emptyElement.setAttribute("id", newNode.getAttribute("id"));
+                emptyElement.setAttribute("id", elementId);
                 originNode.parentNode.insertBefore(emptyElement, originNode);
                 originNode.parentNode.insertBefore(textElement, originNode);
                 indexAdjustmentForMoveNewTree[depthNew] += 2;
@@ -579,6 +577,8 @@ function removeCommentsFromXmlDoc(xmlDoc) {
     var comments = xmlDoc.evaluate('//comment()', xmlDoc, null, XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
     for (var i = 0; i < comments.snapshotLength; i++) {
         var commentNode = comments.snapshotItem(i);
+        var textNode = commentNode.previousSibling
+        commentNode.parentNode.removeChild(textNode);
         commentNode.parentNode.removeChild(commentNode);
     }
 }
