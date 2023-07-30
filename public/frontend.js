@@ -6,6 +6,7 @@ let delMoveArray = [];
 let updArray = [];
 let cache = '<cache></cache>'
 
+
 function getDomPath(el) {
     var stack = [];
     while ( el.parentNode != null ) {
@@ -32,6 +33,40 @@ function getDomPath(el) {
         el = el.parentNode;
     }
     return stack.slice(4).join(' > '); // removes the html element
+}
+
+function createBibliography() {
+    const colors = ['#87DEB3', '#92ceec', '#e3e372', '#FA9D9D', '#7eb3cd'];
+    const explanations = [
+        'Color 1 represents: Explanation 1',
+        'Color 2 represents: Explanation 2',
+        'Color 3 represents: Explanation 3',
+        'Color 4 represents: Explanation 4',
+        'Color 5 represents: Explanation 5'
+    ];
+
+    const table = document.createElement('table');
+
+    for (let i = 0; i < 5; i++) {
+        const row = document.createElement('tr');
+
+        // Create the color stripe cell
+        const colorCell = document.createElement('td');
+        colorCell.style.backgroundColor = colors[i];
+        colorCell.style.width = '20px'; // Adjust the width as needed
+        row.appendChild(colorCell);
+
+        // Create the explanation cell
+        const explanationCell = document.createElement('td');
+        explanationCell.textContent = explanations[i];
+        row.appendChild(explanationCell);
+
+        table.appendChild(row);
+    }
+
+    // Add the table to the 'diffOutput' div (upper right corner)
+    const diffOutputDiv = document.getElementById('bibliography');
+    diffOutputDiv.appendChild(table);
 }
 
 function uploadTrees() {
@@ -135,7 +170,7 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
         if (diffElement.tagName === "insert") {
             const newPath = diffElement.getAttribute("newPath");
             const newLabel = diffElement.querySelector("label");
-            const elementId = diffElement.childNodes[1].getAttribute("id");
+            const elementId = diffElement.children[0].getAttribute("id");
 
             if (newLabel) {
                 insertsArray.set(elementId, true);
@@ -148,8 +183,7 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
 
                 const emptyElement = cache.createElement("empty");
                 const textElement = cache.createTextNode("\n    ");
-
-                let currentNode = oldXmlDoc.getRootNode().childNodes[0];
+                let currentNode = oldXmlDoc.getRootNode().children[0];
                 for (let j = 1; j < newPathArray.length; j++) {
                     if (currentNode.childNodes.length <= 2 * newPathArray[j] + 1) {
                         const textElement = cache.createTextNode("\n    ");
@@ -157,7 +191,12 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
                         currentNode.appendChild(commentElement);
                         currentNode.appendChild(textElement)
                     }
+                    console.log(currentNode.children);
+                    console.log(currentNode.childNodes);
+                    console.log(newPathArray[j]);
                     currentNode = currentNode.childNodes[2 * newPathArray[j] + 1];
+                    console.log(currentNode);
+
                 }
 
                 emptyElement.setAttribute('id', elementId);
@@ -255,13 +294,26 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
                     depthOld += 1;
                 }
                 elementId = originNode.getAttribute("id");
-                if (!originNode.getElementsByTagName("label").length) {
-                    moveOldArray.set(elementId, false);
-                    moveNewArray.set(elementId, false)
-                } else {
-                    moveOldArray.set(elementId, true);
-                    moveNewArray.set(elementId, true)
+
+                let movedFrom = "";
+
+                if (newPath) {
+                    const newPathArray = newPath.split("/").map(Number);
+                    if (newPathArray > oldPathArray) {
+                        // movedFrom = "⬆️";
+                        movedFrom = "&#11014;&#65039;";
+                    } else if (newPathArray < oldPathArray) {
+                        // movedFrom = "⬇️";
+                        movedFrom = "&#11015;&#65039;";
+                    } else {
+                        // movedFrom = "↔️";
+                        movedFrom = "&#8596;&#65039;";
+                    }
                 }
+
+                moveOldArray.set(elementId, movedFrom);
+                moveNewArray.set(elementId, movedFrom)
+
                 emptyElement.setAttribute("id", originNode.getAttribute("id"));
                 currentNode.parentNode.insertBefore(emptyElement, currentNode);
                 currentNode.parentNode.insertBefore(textElement, currentNode);
@@ -329,7 +381,12 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
                     currentNode = currentNode.childNodes[2 * oldPathArray[j] + 1];
                 }
                 let elementId = currentNode.getAttribute("id");
-                updateArray.set(elementId, true)
+                let children = diffElement.children;
+                let stringWithHtmlUpdated ="";
+                for (i = 0; i < children.length ; i++){
+                    stringWithHtmlUpdated += children[i].outerHTML;
+                }
+                updateArray.set(elementId, escapeHtml(stringWithHtmlUpdated));
             }
         }
     }
@@ -346,26 +403,47 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
         });
 }
 
+function escapeHtml(unsafe)
+{
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 function displayOneTree(divId, svgId, xmlDoc, insertsArray, deleteArray, moveOldArray, moveNewArray, updateArray) {
     return new Promise((resolve, reject) => {
         let graphrealization = new WfAdaptor('http://localhost/cockpit/themes/extended/theme.js', function (graphrealization) {
 
             graphrealization.draw_labels = function (max, labels, shift, striped) {
                 // edit labels here
+                //TODO Handle index -1 (Ursache: No element-id in loops)
+                if (divId === "#newTree") {
+                    updateArray.forEach((updateValue, id) => {
+                        const index = labels.findIndex(label => label['element_id'] === id);
+                        if (index != -1) {
+                            var updated = {};
+                            updated['column'] = 'Updated';
+                            updated['value'] = updateValue;
+                            labels[index]['label'].push(updated);
+                        }
+                    })
+                    moveOldArray.forEach((movedFrom, id) => {
+                        const index = labels.findIndex(label => label['element_id'] === id);
+                        if (index != -1) {
+                            var moved = {};
+                            moved['column'] = 'MovedFrom';
+                            moved['value'] = movedFrom;
+                            labels[index]['label'].push(moved);
+                        }
+                    })
+                }
 
-                $(svgId).css('grid-row', '1/span ' + (max.row + 2));
 
-                var patternOdd = $('<pattern id="diagonalHatchOdd" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(135 0 0)" width="35">\n' +
-                    '  <rect x="0" y="0" height="10" style="fill:#e3e372" width="35"></rect>\n' +
-                    '  <line x1="0" y1="0" x2="0" y2="10" style="stroke:#92ceec; stroke-width:35"></line>\n' +
-                    '</pattern>');
-                var patternEven = $('<pattern id="diagonalHatchEven" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(135 0 0)" width="35">\n' +
-                    '  <rect x="0" y="0" height="10" style="fill:#cdcd67" width="35"></rect>\n' +
-                    '  <line x1="0" y1="0" x2="0" y2="10" style="stroke:#7eb3cd; stroke-width:35"></line>\n' +
-                    '</pattern>');
 
-                $(svgId).prepend(patternOdd);
-                $(svgId).prepend(patternEven);
+                    $(svgId).css('grid-row', '1/span ' + (max.row + 2));
 
                 if (striped == true) {
                     if (!$(divId).hasClass('striped')) {
@@ -420,6 +498,19 @@ function displayOneTree(divId, svgId, xmlDoc, insertsArray, deleteArray, moveOld
                     var ele = $('<div element-row="'+i+'" class="graphlast ' + (i % 2 == 0 ? 'odd' : 'even') + '" style="grid-column: ' + (j + 2) + '; grid-row: ' + (i + 2) + '; padding-bottom: ' + shift + 'px">&#032;</div>');
                     $(divId).append(ele);
                 }
+
+                var patternOdd = $('<pattern id="diagonalHatchOdd" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(135 0 0)" width="35">\n' +
+                    '  <rect x="0" y="0" height="10" style="fill:#e3e372" width="35"></rect>\n' +
+                    '  <line x1="0" y1="0" x2="0" y2="10" style="stroke:#92ceec; stroke-width:35"></line>\n' +
+                    '</pattern>');
+                var patternEven = $('<pattern id="diagonalHatchEven" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(135 0 0)" width="35">\n' +
+                    '  <rect x="0" y="0" height="10" style="fill:#cdcd67" width="35"></rect>\n' +
+                    '  <line x1="0" y1="0" x2="0" y2="10" style="stroke:#7eb3cd; stroke-width:35"></line>\n' +
+                    '</pattern>');
+
+                $(svgId).prepend(patternOdd);
+                $(svgId).prepend(patternEven);
+
                 if (divId === "#newTree") {
                     insertsArray.forEach((indexIsLabel, id) => {
                         let element = $(divId).find('[element-id=' + id + ']')
@@ -435,7 +526,8 @@ function displayOneTree(divId, svgId, xmlDoc, insertsArray, deleteArray, moveOld
                         $(document).find('[element-row=' + row + ']').addClass(myclass);
                     })
 
-                    updateArray.forEach((indexIsLabel, id) => {
+
+                    updateArray.forEach((updateValue, id) => {
                         let element = $(divId).find('[element-id=' + id + ']')
                         let row = element.last().attr('element-row');
                         let myclass = element.last().hasClass('odd') ? "diffupdateodd" : "diffupdateeven";
@@ -464,11 +556,11 @@ function displayOneTree(divId, svgId, xmlDoc, insertsArray, deleteArray, moveOld
                         let element = $(divId).find('[element-id=' + id + ']')
                         delArray.push(element)
                     })
-                    moveOldArray.forEach((indexIsLabel, id) => {
+                    moveOldArray.forEach((movedFrom, id) => {
                         let element = $(divId).find('[element-id=' + id + ']')
                         delMoveArray.push(element)
                     })
-                    updateArray.forEach((indexIsLabel, id) => {
+                    updateArray.forEach((updateValue, id) => {
                         let element = $(divId).find('[element-id=' + id + ']')
                         updArray.push(element)
                     })
@@ -483,6 +575,12 @@ function displayOneTree(divId, svgId, xmlDoc, insertsArray, deleteArray, moveOld
     });
 }
 
-
+function removeCommentsFromXmlDoc(xmlDoc) {
+    var comments = xmlDoc.evaluate('//comment()', xmlDoc, null, XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
+    for (var i = 0; i < comments.snapshotLength; i++) {
+        var commentNode = comments.snapshotItem(i);
+        commentNode.parentNode.removeChild(commentNode);
+    }
+}
 
 // style="fill:green;" for <recT>

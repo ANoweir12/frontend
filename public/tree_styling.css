@@ -3,6 +3,11 @@
     flex-direction: row;
 }
 
+#bibliography {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
 
 rect.diffaddodd{
     fill: #ABF5D1 !important;
