@@ -9,7 +9,7 @@
             </arguments>
         </parameters>
     </call>
-    <loop mode="pre_test" id="loop3" condition="data.items.length > 0">
+    <loop id="loop3" condition="data.items.length > 0">
         <call id="a2" endpoint="shipItem">
             <parameters>
                 <label>Initiate shipping to customer</label>
