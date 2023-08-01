@@ -9,7 +9,7 @@
         </parameters>
     </call>
     <manipulate id="manipul1">data.shipped = false;</manipulate>
-    <loop condition="data.items.length > 0">
+    <loop id="loop1" condition="data.items.length > 0">
         <call id="a2" endpoint="shipItem">
             <parameters>
                 <label>Initiate shipping to customer</label>

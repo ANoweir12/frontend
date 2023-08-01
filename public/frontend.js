@@ -164,7 +164,10 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
     /*Double Arrays: First index indicates the depth at which the new empty element has been added
      Second index indicates the index, at which the new element has been added
      */
-    let indexAdjustmentForNewTree = [[0]];
+    let indexAdjustmentOldTree = [[0]];
+    let indexAdjustmentNewTree = [[0]];
+
+    let indexAdjustmentForEmptyElementsOfDelete = [[0]];
     let indexAdjustmentForDeleteFutureMoves = [[0]];
 
     let indexAdjustmentForMoveOldTree = [[0]];
@@ -213,9 +216,6 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
             if (newPath) {
                 const newPathArray = newPath.split("/").map(Number);
 
-                const emptyElement = cache.createElement("empty");
-                const textElement = cache.createTextNode("\n    ");
-
                 let currentNode = oldXmlDoc.getRootNode().childNodes[0];
                 for (let j = 1; j < newPathArray.length; j++) {
                     if (currentNode.childNodes.length <= 2 * newPathArray[j] + 1) {
@@ -227,10 +227,24 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
                     currentNode = currentNode.childNodes[2 * newPathArray[j] + 1];
                 }
 
-                emptyElement.setAttribute('id', elementId);
 
-                currentNode.parentNode.insertBefore(emptyElement, currentNode);
-                currentNode.parentNode.insertBefore(textElement, currentNode);
+                const necessaryEmpties = necessaryEmptyCount(diffElement.childNodes[1]);
+                if (!indexAdjustmentOldTree[newPathArray.length - 1]) {
+                    indexAdjustmentOldTree[newPathArray.length - 1] = [0]
+                }
+                if (!indexAdjustmentOldTree[newPathArray.length - 1][newPathArray[newPathArray.length - 1]]) {
+                    indexAdjustmentOldTree[newPathArray.length - 1][newPathArray[newPathArray.length - 1]] = 2 * necessaryEmpties - 2;
+                } else {
+                    indexAdjustmentOldTree[newPathArray.length - 1][newPathArray[newPathArray.length - 1]] += 2 * necessaryEmpties - 2;
+                }
+
+                for (let i = 0; i < necessaryEmpties; i++) {
+                    const emptyElement = cache.createElement("empty");
+                    const textElement = cache.createTextNode("\n    ");
+                    emptyElement.setAttribute('id', elementId);
+                    currentNode.parentNode.insertBefore(emptyElement, currentNode);
+                    currentNode.parentNode.insertBefore(textElement, currentNode);
+                }
             }
         }
         if (diffElement.tagName === "delete") {
@@ -238,9 +252,6 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
             let depth = 0;
             if (oldPath) {
                 const oldPathArray = oldPath.split("/").map(Number);
-
-                const emptyElement = cache.createElement("empty");
-                const textElement = cache.createTextNode("\n    ");
 
                 let originNode = oldXmlDoc.getRootNode().childNodes[0];
                 let currentNode = newXmlDoc.getRootNode().childNodes[0];
@@ -250,21 +261,33 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
                     let indexAdjustmentCurrentStep = 0;
                     let indexAdjustmentOriginTree = 0;
 
-                    if (!indexAdjustmentForNewTree[depth + 1]) {
-                        indexAdjustmentForNewTree[depth + 1] = [0];
+                    if (!indexAdjustmentForEmptyElementsOfDelete[depth + 1]) {
+                        indexAdjustmentForEmptyElementsOfDelete[depth + 1] = [0];
                     }
                     if (!indexAdjustmentForDeleteFutureMoves[depth + 1]) {
                         indexAdjustmentForDeleteFutureMoves[depth + 1] = [0];
                     }
+                    if (!indexAdjustmentOldTree[depth + 1]) {
+                        indexAdjustmentOldTree[depth + 1] = [0]
+                    }
+                    if (!indexAdjustmentNewTree[depth + 1]) {
+                        indexAdjustmentNewTree[depth + 1] = [0]
+                    }
                     for (let z = 0; z <= oldPathArray[j]; z++) {
-                        if (!indexAdjustmentForNewTree[depth + 1][z]) {
-                            indexAdjustmentForNewTree[depth + 1][z] = 0;
+                        if (!indexAdjustmentForEmptyElementsOfDelete[depth + 1][z]) {
+                            indexAdjustmentForEmptyElementsOfDelete[depth + 1][z] = 0;
                         }
                         if (!indexAdjustmentForDeleteFutureMoves[depth + 1][z]) {
                             indexAdjustmentForDeleteFutureMoves[depth + 1][z] = 0;
                         }
-                        indexAdjustmentOriginTree += indexAdjustmentForNewTree[depth + 1][z];
-                        indexAdjustmentCurrentStep += indexAdjustmentForNewTree[depth + 1][z] + indexAdjustmentForDeleteFutureMoves[depth + 1][z];
+                        if (!indexAdjustmentOldTree[depth + 1][z]) {
+                            indexAdjustmentOldTree[depth + 1][z] = 0;
+                        }
+                        if (!indexAdjustmentNewTree[depth + 1][z]) {
+                            indexAdjustmentNewTree[depth + 1][z] = 0;
+                        }
+                        indexAdjustmentOriginTree += indexAdjustmentForEmptyElementsOfDelete[depth + 1][z] + indexAdjustmentOldTree[depth + 1][z];
+                        indexAdjustmentCurrentStep += indexAdjustmentForEmptyElementsOfDelete[depth + 1][z] + indexAdjustmentForDeleteFutureMoves[depth + 1][z] + indexAdjustmentNewTree[depth + 1][z];
 
                     }
 
@@ -289,10 +312,25 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
                 let elementId = originNode.getAttribute("id");
                 deleteArray.set(elementId, true);
 
-                emptyElement.setAttribute("id", originNode.getAttribute("id"));
-                currentNode.parentNode.insertBefore(emptyElement, currentNode);
-                currentNode.parentNode.insertBefore(textElement, currentNode);
-                indexAdjustmentForNewTree[depth][oldPathArray[oldPathArray.length - 1]] += 2;
+                const necessaryEmpties = necessaryEmptyCount(originNode);
+                if (!indexAdjustmentNewTree[oldPathArray.length - 1]) {
+                    indexAdjustmentNewTree[oldPathArray.length - 1] = [0]
+                }
+                if (!indexAdjustmentNewTree[oldPathArray.length - 1][oldPathArray[oldPathArray.length - 1]]) {
+                    indexAdjustmentNewTree[oldPathArray.length - 1][oldPathArray[oldPathArray.length - 1]] = 2 * necessaryEmpties - 2;
+                } else {
+                    indexAdjustmentNewTree[oldPathArray.length - 1][oldPathArray[oldPathArray.length - 1]] += 2 * necessaryEmpties - 2;
+                }
+
+                for (let i = 0; i < necessaryEmpties; i++) {
+                    const emptyElement = cache.createElement("empty");
+                    const textElement = cache.createTextNode("\n    ");
+                    emptyElement.setAttribute('id', elementId);
+                    currentNode.parentNode.insertBefore(emptyElement, currentNode);
+                    currentNode.parentNode.insertBefore(textElement, currentNode);
+                }
+
+                indexAdjustmentForEmptyElementsOfDelete[depth][oldPathArray[oldPathArray.length - 1]] += 2;
 
             }
         }
@@ -340,25 +378,39 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
 
                 for (let j = 1; j < oldPathArray.length; j++) {
                     let indexAdjustmentCurrentStep = 0;
+                    let indexAdjustmentOriginStep = 0;
+
 
                     if (!indexAdjustmentForMoveOldTree[depthOld + 1]) {
                         indexAdjustmentForMoveOldTree[depthOld + 1] = [0];
                     }
+                    if (!indexAdjustmentForEmptyElementsOfDelete[depthOld + 1]) {
+                        indexAdjustmentForEmptyElementsOfDelete[depthOld + 1] = [0];
+                    }
+                    if (!indexAdjustmentOldTree[depthOld + 1]) {
+                        indexAdjustmentOldTree[depthOld + 1] = [0];
+                    }
+                    if (!indexAdjustmentNewTree[depthOld + 1]) {
+                        indexAdjustmentNewTree[depthOld + 1] = [0];
+                    }
+
                     for (let z = 0; z <= oldPathArray[j]; z++) {
                         if (!indexAdjustmentForMoveOldTree[depthOld + 1][z]) {
                             indexAdjustmentForMoveOldTree[depthOld + 1][z] = 0;
                         }
-                        indexAdjustmentCurrentStep += indexAdjustmentForMoveOldTree[depthOld + 1][z];
-                    }
-
-                    if (!indexAdjustmentForNewTree[depthOld + 1]) {
-                        indexAdjustmentForNewTree[depthOld + 1] = [0];
-                    }
-                    for (let z = 0; z <= oldPathArray[j]; z++) {
-                        if (!indexAdjustmentForNewTree[depthOld + 1][z]) {
-                            indexAdjustmentForNewTree[depthOld + 1][z] = 0;
+                        if (!indexAdjustmentForEmptyElementsOfDelete[depthOld + 1][z]) {
+                            indexAdjustmentForEmptyElementsOfDelete[depthOld + 1][z] = 0;
                         }
-                        indexAdjustmentCurrentStep += indexAdjustmentForNewTree[depthOld + 1][z];
+                        if (!indexAdjustmentOldTree[depthOld + 1][z]) {
+                            indexAdjustmentOldTree[depthOld + 1][z] = 0;
+                        }
+                        if (!indexAdjustmentNewTree[depthOld + 1][z]) {
+                            indexAdjustmentNewTree[depthOld + 1][z] = 0;
+                        }
+
+                        indexAdjustmentCurrentStep += indexAdjustmentForMoveOldTree[depthOld + 1][z] + indexAdjustmentForEmptyElementsOfDelete[depthOld + 1][z] + indexAdjustmentNewTree[depthOld + 1][z];
+                        indexAdjustmentOriginStep += indexAdjustmentForMoveOldTree[depthOld + 1][z] + indexAdjustmentForEmptyElementsOfDelete[depthOld + 1][z] + indexAdjustmentOldTree[depthOld + 1][z];
+
                     }
 
                     if (currentNode.childNodes.length <= indexAdjustmentCurrentStep + 2 * oldPathArray[j] + 1) {
@@ -369,13 +421,13 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
                     }
                     currentNode = currentNode.childNodes[indexAdjustmentCurrentStep + 2 * oldPathArray[j] + 1];
 
-                    if (originNode.childNodes.length <= indexAdjustmentCurrentStep + 2 * oldPathArray[j] + 1) {
+                    if (originNode.childNodes.length <= indexAdjustmentOriginStep + 2 * oldPathArray[j] + 1) {
                         const textElement = cache.createTextNode("\n    ");
                         const commentElement = cache.createComment("Placeholder");
                         originNode.appendChild(commentElement);
                         originNode.appendChild(textElement);
                     }
-                    originNode = originNode.childNodes[indexAdjustmentCurrentStep + 2 * oldPathArray[j] + 1];
+                    originNode = originNode.childNodes[indexAdjustmentOriginStep + 2 * oldPathArray[j] + 1];
 
                     depthOld += 1;
                 }
@@ -420,25 +472,38 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
 
                 for (let j = 1; j < newPathArray.length; j++) {
                     let indexAdjustmentCurrentStep = 0;
+                    let indexAdjustmentOriginStep = 0;
+
 
                     if (!indexAdjustmentForMoveNewTree[depthNew + 1]) {
                         indexAdjustmentForMoveNewTree[depthNew + 1] = [0];
                     }
+                    if (!indexAdjustmentForEmptyElementsOfDelete[depthNew + 1]) {
+                        indexAdjustmentForEmptyElementsOfDelete[depthNew + 1] = [0];
+                    }
+                    if (!indexAdjustmentOldTree[depthNew + 1]) {
+                        indexAdjustmentOldTree[depthNew + 1] = [0];
+                    }
+                    if (!indexAdjustmentNewTree[depthNew + 1]) {
+                        indexAdjustmentNewTree[depthNew + 1] = [0];
+                    }
+
                     for (let z = 0; z <= newPathArray[j]; z++) {
                         if (!indexAdjustmentForMoveNewTree[depthNew + 1][z]) {
                             indexAdjustmentForMoveNewTree[depthNew + 1][z] = 0;
                         }
-                        indexAdjustmentCurrentStep += indexAdjustmentForMoveNewTree[depthNew + 1][z];
-                    }
-
-                    if (!indexAdjustmentForNewTree[depthNew + 1]) {
-                        indexAdjustmentForNewTree[depthNew + 1] = [0];
-                    }
-                    for (let z = 0; z <= newPathArray[j]; z++) {
-                        if (!indexAdjustmentForNewTree[depthNew + 1][z]) {
-                            indexAdjustmentForNewTree[depthNew + 1][z] = 0;
+                        if (!indexAdjustmentForEmptyElementsOfDelete[depthNew + 1][z]) {
+                            indexAdjustmentForEmptyElementsOfDelete[depthNew + 1][z] = 0;
                         }
-                        indexAdjustmentCurrentStep += indexAdjustmentForNewTree[depthNew + 1][z];
+                        if (!indexAdjustmentOldTree[depthNew + 1][z]) {
+                            indexAdjustmentOldTree[depthNew + 1][z] = 0;
+                        }
+                        if (!indexAdjustmentNewTree[depthNew + 1][z]) {
+                            indexAdjustmentNewTree[depthNew + 1][z] = 0;
+                        }
+                        indexAdjustmentCurrentStep += indexAdjustmentForMoveNewTree[depthNew + 1][z] + indexAdjustmentForEmptyElementsOfDelete[depthNew + 1][z] + indexAdjustmentNewTree[depthNew + 1][z];
+                        indexAdjustmentOriginStep += indexAdjustmentForMoveNewTree[depthNew + 1][z] + indexAdjustmentForEmptyElementsOfDelete[depthNew + 1][z] + indexAdjustmentOldTree[depthNew + 1][z];
+
                     }
 
                     if (newNode.childNodes.length <= indexAdjustmentCurrentStep + 2 * newPathArray[j] + 1) {
@@ -449,13 +514,13 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
                     }
                     newNode = newNode.childNodes[indexAdjustmentCurrentStep + 2 * newPathArray[j] + 1];
 
-                    if (originNode.childNodes.length <= indexAdjustmentCurrentStep + 2 * newPathArray[j] + 1) {
+                    if (originNode.childNodes.length <= indexAdjustmentOriginStep + 2 * newPathArray[j] + 1) {
                         const textElement = cache.createTextNode("\n    ");
                         const commentElement = cache.createComment("Placeholder");
                         originNode.appendChild(commentElement);
                         originNode.appendChild(textElement);
                     }
-                    originNode = originNode.childNodes[indexAdjustmentCurrentStep + 2 * newPathArray[j] + 1];
+                    originNode = originNode.childNodes[indexAdjustmentOriginStep + 2 * newPathArray[j] + 1];
 
                     depthNew += 1;
                 }
@@ -468,25 +533,40 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
         }
         if (diffElement.tagName === "update") {
             const oldPath = diffElement.getAttribute("oldPath");
+            let depth = 0;
 
             if (oldPath) {
+
                 const oldPathArray = oldPath.split("/").map(Number);
 
-
-                let currentNode = oldXmlDoc.getRootNode().childNodes[0];
+                let originNode = oldXmlDoc.getRootNode().childNodes[0];
                 for (let j = 1; j < oldPathArray.length; j++) {
-                    if (currentNode.childNodes.length <= 2 * oldPathArray[j] + 1) {
+
+                    let indexAdjustmentOriginStep = 0;
+
+                    if (!indexAdjustmentOldTree[depth + 1]) {
+                        indexAdjustmentOldTree[depth + 1] = [0];
+                    }
+                    for (let z = 0; z <= oldPathArray[j]; z++) {
+                        if (!indexAdjustmentOldTree[depth + 1][z]) {
+                            indexAdjustmentOldTree[depth + 1][z] = 0;
+                        }
+                        indexAdjustmentOriginStep += indexAdjustmentOldTree[depth + 1][z];
+                    }
+
+                    if (originNode.childNodes.length <= indexAdjustmentOriginStep + 2 * oldPathArray[j] + 1) {
                         const textElement = cache.createTextNode("\n    ");
                         const commentElement = cache.createComment("Placeholder");
-                        currentNode.appendChild(commentElement);
-                        currentNode.appendChild(textElement)
+                        originNode.appendChild(commentElement);
+                        originNode.appendChild(textElement)
                     }
-                    if (currentNode.childNodes[2 * oldPathArray[j] + 1].tagName === "parameters" || currentNode.childNodes[2 * oldPathArray[j] + 1].tagName === "code") {
+                    if (originNode.childNodes[indexAdjustmentOriginStep + 2 * oldPathArray[j] + 1].tagName === "parameters" || originNode.childNodes[2 * oldPathArray[j] + 1].tagName === "code") {
                         break;
                     }
-                    currentNode = currentNode.childNodes[2 * oldPathArray[j] + 1];
+                    originNode = originNode.childNodes[indexAdjustmentOriginStep + 2 * oldPathArray[j] + 1];
+                    depth++;
                 }
-                let elementId = currentNode.getAttribute("id");
+                let elementId = originNode.getAttribute("id");
                 let children = diffElement.children;
                 let stringWithHtmlUpdated = "";
                 for (let i = 0; i < children.length; i++) {
@@ -617,14 +697,14 @@ function displayOneTree(divId, svgId, xmlDoc, insertsArray, deleteArray, moveOld
 
                 if (divId === "#newTree") {
                     insertsArray.forEach((indexIsLabel, id) => {
-                        let element = $(divId).find('[element-id=' + id + ']')
+                        let element = $(divId).find('[element-id=' + id + '][element-row]')
                         let row = element.last().attr('element-row');
                         let myclass = element.last().hasClass('odd') ? "diffaddodd" : "diffaddeven";
                         $(document).find('[element-row=' + row + ']').addClass(myclass);
                     })
 
                     moveNewArray.forEach((indexIsLabel, id) => {
-                        let element = $(divId).find('[element-id=' + id + ']')
+                        let element = $(divId).find('[element-id=' + id + '][element-row]')
                         let row = element.last().attr('element-row');
                         let myclass = element.last().hasClass('odd') ? "diffmoveodd" : "diffmoveeven";
                         $(document).find('[element-row=' + row + ']').addClass(myclass);
@@ -632,7 +712,7 @@ function displayOneTree(divId, svgId, xmlDoc, insertsArray, deleteArray, moveOld
 
 
                     updateArray.forEach((updateValue, id) => {
-                        let element = $(divId).find('[element-id=' + id + ']')
+                        let element = $(divId).find('[element-id=' + id + '][element-row]')
                         let row = element.last().attr('element-row');
                         let myclass = element.last().hasClass('odd') ? "diffupdateodd" : "diffupdateeven";
                         $(document).find('[element-row=' + row + ']').addClass(myclass);
@@ -657,15 +737,15 @@ function displayOneTree(divId, svgId, xmlDoc, insertsArray, deleteArray, moveOld
                 }
                 if (divId === "#oldTree") {
                     deleteArray.forEach((indexIsLabel, id) => {
-                        let element = $(divId).find('[element-id=' + id + ']')
+                        let element = $(divId).find('[element-id=' + id + '][element-row]')
                         delArray.push(element)
                     })
                     moveOldArray.forEach((movedFrom, id) => {
-                        let element = $(divId).find('[element-id=' + id + ']')
+                        let element = $(divId).find('[element-id=' + id + '][element-row]')
                         delMoveArray.push(element)
                     })
                     updateArray.forEach((updateValue, id) => {
-                        let element = $(divId).find('[element-id=' + id + ']')
+                        let element = $(divId).find('[element-id=' + id + '][element-row]')
                         updArray.push(element)
                     })
                 }
@@ -687,6 +767,10 @@ function removeCommentsFromXmlDoc(xmlDoc) {
         commentNode.parentNode.removeChild(textNode);
         commentNode.parentNode.removeChild(commentNode);
     }
+}
+
+function necessaryEmptyCount(node) {
+    return 3;
 }
 
 // style="fill:green;" for <recT>
