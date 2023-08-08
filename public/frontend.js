@@ -546,6 +546,7 @@ function displayBothTrees(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId, 
                     originNode.parentNode.insertBefore(textElement, originNode);
                 }
 
+
                 indexAdjustmentForMoveInsertEmptyOldTree[depthNew][newPathArray[newPathArray.length - 2]] += 2;
 
                 const oldPathArray = oldPath.split("/").map(Number);
