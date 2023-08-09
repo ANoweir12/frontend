@@ -223,7 +223,7 @@ function displayBothTrees2(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId,
                 }
 
                 index = insertInArrayAccordingToPath(arrayOfOldTreeClone, newPathArray, arrayOfOldTree[index].treeElement);
-                for (let j = index; j < index + necessaryEmptyCount(arrayOfOldTree[index].treeElement); j++) {
+                for (let j = index; j < index + necessaryEmptyCount(arrayOfOldTreeClone[index].treeElement); j++) {
                     arrayOfOldTreeClone[j].colorOperations = colorOperations[j - index];
                     arrayOfOldTreeClone[j].emptyInOtherTree = true;
                     arrayOfOldTreeClone[j].colorOperations.push("move");
@@ -335,8 +335,26 @@ function displayBothTrees2(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId,
             // currentNode.parentNode.insertBefore(textElement, currentNode);
         }
     }
-    console.log(arrayOfOldTree)
-    console.log(arrayOfOldTreeClone)
+
+    for (let i = 0; i < arrayOfOldTree.length; i++) {
+        let colorArray = arrayOfOldTree[i].colorOperations;
+        for (let j = 0; j < colorArray.length; j++) {
+            switch (colorArray[j]) {
+                case "delete":
+                    deleteArray.push(i);
+                    break;
+
+                case "move":
+                    moveOldArray.push(i);
+                    break;
+
+                case "update":
+                    updateArray.set(i, "");
+                    break;
+                default:
+            }
+        }
+    }
 
     for (let i = 0; i < arrayOfOldTreeClone.length; i++) {
         let colorArray = arrayOfOldTreeClone[i].colorOperations;
@@ -357,25 +375,7 @@ function displayBothTrees2(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId,
             }
         }
     }
-    for (let i = 0; i < arrayOfOldTree.length; i++) {
-        let colorArray = arrayOfOldTree[i].colorOperations;
-        for (let j = 0; j < colorArray.length; j++) {
-            switch (colorArray[j]) {
-                case "delete":
-                    deleteArray.push(i);
-                    break;
 
-                case "move":
-                    moveOldArray.push(i);
-                    break;
-
-                case "update":
-                    updateArray.set(i, "");
-                    break;
-                default:
-            }
-        }
-    }
 
 
     displayOneTree2(oldDivId, oldSvgId, oldXmlDoc, insertsArray, deleteArray, moveOldArray, moveNewArray, updateArray)
