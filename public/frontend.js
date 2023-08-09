@@ -210,6 +210,11 @@ function displayBothTrees2(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId,
             if (oldPath && newPath) {
                 const oldPathArray = oldPath.split("/").map(Number);
                 const newPathArray = newPath.split("/").map(Number);
+                let indexCurrentTree = getIndexFromArrayAccordingToPath(arrayOfOldTreeClone, oldPathArray);
+                let colorOperations = [];
+                for (let j = indexCurrentTree; j < indexCurrentTree + necessaryEmptyCount(arrayOfOldTreeClone[indexCurrentTree].treeElement); j++) {
+                    colorOperations.push(JSON.parse(JSON.stringify(arrayOfOldTreeClone[indexCurrentTree].colorOperations)));
+                }
 
                 let index = deleteFromArrayAccordingToPath(arrayOfOldTreeClone, oldPathArray, arrayOfOldTree);
                 for (let j = index; j < index + necessaryEmptyCount(arrayOfOldTree[index].treeElement); j++) {
@@ -219,6 +224,7 @@ function displayBothTrees2(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId,
 
                 index = insertInArrayAccordingToPath(arrayOfOldTreeClone, newPathArray, arrayOfOldTree[index].treeElement);
                 for (let j = index; j < index + necessaryEmptyCount(arrayOfOldTree[index].treeElement); j++) {
+                    arrayOfOldTreeClone[j].colorOperations = colorOperations[j - index];
                     arrayOfOldTreeClone[j].emptyInOtherTree = true;
                     arrayOfOldTreeClone[j].colorOperations.push("move");
                     if (newPathArray > oldPathArray) {
@@ -391,7 +397,6 @@ function displayOneTree2(divId, svgId, xmlDoc, insertsArray, deleteArray, moveOl
 
             graphrealization.draw_labels = function (max, labels, shift, striped) {
                 // edit labels here
-                //TODO Handle index -1 (Ursache: No element-id in loops)
                 if (divId === "#newTree") {
                     updateArray.forEach((updateValue, row) => {
                         const index = labels.findIndex(label => label['row'] === row + 1);
