@@ -175,9 +175,10 @@ function displayBothTrees2(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId,
         },
     ];
 
-    xmlDocToArray(newXmlDoc, arrayOfNewTree)
+    xmlDocToArray(newXmlDoc, arrayOfNewTree);
     xmlDocToArray(oldXmlDoc, arrayOfOldTree);
     xmlDocToArray(oldXmlDocClone, arrayOfOldTreeClone);
+
 
     for (let i = 0; i < diffElements.length; i++) {
         const diffElement = diffElements[i];
@@ -734,7 +735,7 @@ function childrenToArray(rootNode, pathRootNode, indexStartRootInArray, arrayOfT
             case "loop":
                 let mode = children[i].getAttribute('mode')
                 if (mode && mode == "pre_test") {
-                    insertInArray(arrayOfTree, indexStartRootInArray + (i + 1), {
+                    insertInArray(arrayOfTree, indexStartRootInArray + (j + 1), {
                         isStart: true,
                         hasEnd: false,
                         isEnd: false,
@@ -745,7 +746,7 @@ function childrenToArray(rootNode, pathRootNode, indexStartRootInArray, arrayOfT
                         emptyInOtherTree: false
                     })
                 } else {
-                    insertInArray(arrayOfTree, indexStartRootInArray + (i + 1), {
+                    insertInArray(arrayOfTree, indexStartRootInArray + (j + 1), {
                         isStart: true,
                         hasEnd: true,
                         isEnd: false,
@@ -755,7 +756,7 @@ function childrenToArray(rootNode, pathRootNode, indexStartRootInArray, arrayOfT
                         colorOperations: [],
                         emptyInOtherTree: false
                     })
-                    insertInArray(arrayOfTree, indexStartRootInArray + (i + 2), {
+                    insertInArray(arrayOfTree, indexStartRootInArray + (j + 2), {
                         isStart: false,
                         hasEnd: true,
                         isEnd: true,
@@ -766,7 +767,47 @@ function childrenToArray(rootNode, pathRootNode, indexStartRootInArray, arrayOfT
                         emptyInOtherTree: false
                     })
                 }
-                childrenToArray(children[i], newPath, indexStartRootInArray + (i + 1), arrayOfTree, isOriginPathEmpty);
+                childrenToArray(children[i], newPath, indexStartRootInArray + (j + 1), arrayOfTree, isOriginPathEmpty);
+                break;
+            case "choose":
+            case "parallel":
+                insertInArray(arrayOfTree, indexStartRootInArray + (j + 1), {
+                    isStart: true,
+                    hasEnd: true,
+                    isEnd: false,
+                    treeElement: children[i],
+                    originPath: isOriginPathEmpty ? [] : JSON.parse(JSON.stringify(newPath)),
+                    currentPath: JSON.parse(JSON.stringify(newPath)),
+                    colorOperations: [],
+                    emptyInOtherTree: false
+                })
+                insertInArray(arrayOfTree, indexStartRootInArray + (j + 2), {
+                    isStart: false,
+                    hasEnd: true,
+                    isEnd: true,
+                    treeElement: children[i],
+                    originPath: isOriginPathEmpty ? [] : JSON.parse(JSON.stringify(newPath)),
+                    currentPath: JSON.parse(JSON.stringify(newPath)),
+                    colorOperations: [],
+                    emptyInOtherTree: false
+                })
+                childrenToArray(children[i], newPath, indexStartRootInArray + (j + 1), arrayOfTree, isOriginPathEmpty);
+                break;
+            case "alternative":
+            case "otherwise":
+            case "critical":
+            case "parallel_branch":
+                insertInArray(arrayOfTree, indexStartRootInArray + (j + 1), {
+                    isStart: true,
+                    hasEnd: false,
+                    isEnd: false,
+                    treeElement: children[i],
+                    originPath: isOriginPathEmpty ? [] : JSON.parse(JSON.stringify(newPath)),
+                    currentPath: JSON.parse(JSON.stringify(newPath)),
+                    colorOperations: [],
+                    emptyInOtherTree: false
+                })
+                childrenToArray(children[i], newPath, indexStartRootInArray + (j + 1), arrayOfTree, isOriginPathEmpty)
                 break;
             default:
                 insertInArray(arrayOfTree, indexStartRootInArray + (j + 1), {
@@ -821,6 +862,46 @@ function insertXMLElementInArray(element, originPath, currentPath, index, arrayO
                     emptyInOtherTree: false
                 })
             }
+            childrenToArray(element, currentPath, index, arrayOfTree, true);
+            break;
+        case "choose":
+        case "parallel":
+            insertInArray(arrayOfTree, index, {
+                isStart: true,
+                hasEnd: true,
+                isEnd: false,
+                treeElement: element,
+                originPath: JSON.parse(JSON.stringify(originPath)),
+                currentPath: JSON.parse(JSON.stringify(currentPath)),
+                colorOperations: [],
+                emptyInOtherTree: false
+            })
+            insertInArray(arrayOfTree, index + 1, {
+                isStart: false,
+                hasEnd: true,
+                isEnd: true,
+                treeElement: element,
+                originPath: JSON.parse(JSON.stringify(originPath)),
+                currentPath: JSON.parse(JSON.stringify(currentPath)),
+                colorOperations: [],
+                emptyInOtherTree: false
+            })
+            childrenToArray(element, currentPath, index, arrayOfTree, true);
+            break;
+        case "alternative":
+        case "otherwise":
+        case "critical":
+        case "parallel_branch":
+            insertInArray(arrayOfTree, index, {
+                isStart: true,
+                hasEnd: false,
+                isEnd: false,
+                treeElement: element,
+                originPath: JSON.parse(JSON.stringify(originPath)),
+                currentPath: JSON.parse(JSON.stringify(currentPath)),
+                colorOperations: [],
+                emptyInOtherTree: false
+            })
             childrenToArray(element, currentPath, index, arrayOfTree, true);
             break;
         default:
@@ -894,6 +975,22 @@ function necessaryEmptyCount(node) {
             } else {
                 count += 2;
             }
+            for (let i = 0; i < node.children.length; i++) {
+                count += necessaryEmptyCount(node.children[i]);
+            }
+            break;
+        case "choose":
+        case "parallel":
+            count += 2;
+            for (let i = 0; i < node.children.length; i++) {
+                count += necessaryEmptyCount(node.children[i]);
+            }
+            break;
+        case "alternative":
+        case "otherwise":
+        case "critical":
+        case "parallel_branch":
+            count += 1;
             for (let i = 0; i < node.children.length; i++) {
                 count += necessaryEmptyCount(node.children[i]);
             }

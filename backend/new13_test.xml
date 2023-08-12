@@ -23,6 +23,11 @@
     <manipulate id="manipul3">data.shipped = false;</manipulate>
     <parallel wait="-1">
         <parallel_branch>
+            <critical>
+                <manipulate>
+                    data.total *= 1.10;
+                </manipulate>
+            </critical>
             <manipulate>
                 data.total = data.items.map(i => i.price).sum();
                 data.total *= 1.19;
