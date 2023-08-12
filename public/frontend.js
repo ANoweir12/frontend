@@ -210,19 +210,22 @@ function displayBothTrees2(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId,
             if (oldPath && newPath) {
                 const oldPathArray = oldPath.split("/").map(Number);
                 const newPathArray = newPath.split("/").map(Number);
-                let indexCurrentTree = getIndexFromArrayAccordingToPath(arrayOfOldTreeClone, oldPathArray);
+                let indexCurrentTree = getIndexFromArrayAccordingToPath(arrayOfOldTreeClone, oldPathArray, false);
                 let colorOperations = [];
                 for (let j = indexCurrentTree; j < indexCurrentTree + necessaryEmptyCount(arrayOfOldTreeClone[indexCurrentTree].treeElement); j++) {
-                    colorOperations.push(JSON.parse(JSON.stringify(arrayOfOldTreeClone[indexCurrentTree].colorOperations)));
+                    colorOperations.push(JSON.parse(JSON.stringify(arrayOfOldTreeClone[j].colorOperations)));
                 }
 
+                let treeElement = arrayOfOldTreeClone[indexCurrentTree].treeElement;
                 let index = deleteFromArrayAccordingToPath(arrayOfOldTreeClone, oldPathArray, arrayOfOldTree);
                 for (let j = index; j < index + necessaryEmptyCount(arrayOfOldTree[index].treeElement); j++) {
                     arrayOfOldTree[j].emptyInOtherTree = true;
                     arrayOfOldTree[j].colorOperations.push("move");
                 }
 
-                index = insertInArrayAccordingToPath(arrayOfOldTreeClone, newPathArray, arrayOfOldTree[index].treeElement);
+
+                index = insertInArrayAccordingToPath(arrayOfOldTreeClone, newPathArray, treeElement);
+
                 for (let j = index; j < index + necessaryEmptyCount(arrayOfOldTreeClone[index].treeElement); j++) {
                     arrayOfOldTreeClone[j].colorOperations = colorOperations[j - index];
                     arrayOfOldTreeClone[j].emptyInOtherTree = true;
@@ -246,18 +249,53 @@ function displayBothTrees2(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId,
             if (oldPath) {
                 const oldPathArray = oldPath.split("/").map(Number);
 
-                let indexCurrentTree = getIndexFromArrayAccordingToPath(arrayOfOldTreeClone, oldPathArray);
-                let indexOldTree = getIndexFromArrayAccordingToPath(arrayOfOldTree, arrayOfOldTreeClone[indexCurrentTree].originPath);
+                let indexCurrentTree = getIndexFromArrayAccordingToPath(arrayOfOldTreeClone, oldPathArray, true);
+                let indexOldTree = getIndexFromArrayAccordingToPath(arrayOfOldTree, arrayOfOldTreeClone[indexCurrentTree].originPath, false);
 
                 let children = diffElement.children;
                 let stringWithHtmlUpdated = "";
                 for (let i = 0; i < children.length; i++) {
                     stringWithHtmlUpdated += children[i].outerHTML;
+                    if (children[i].nodeName == "loop") {
+                        // Because it chenges the number of rows
+                        let newMode = children[i].getAttribute('mode');
+                        let oldMode = arrayOfOldTreeClone[indexCurrentTree].treeElement.getAttribute('mode');
+
+                        if (newMode) {
+                            if (newMode == 'pre_test' && (!(oldMode) || oldMode == "post_test")) {
+                                arrayOfOldTreeClone[indexCurrentTree].hasEnd = false;
+                                deleteFromArray(arrayOfOldTreeClone, indexCurrentTree + necessaryEmptyCount(arrayOfOldTreeClone[indexCurrentTree].treeElement) - 1);
+                                arrayOfOldTree[indexOldTree + necessaryEmptyCount(arrayOfOldTree[indexOldTree].treeElement) - 1].emptyInOtherTree = true;
+                            }
+
+                        } else if (oldMode) {
+                            if (oldMode == 'pre_test' && (!(newMode) || newMode == "post_test")) {
+                                arrayOfOldTreeClone[indexCurrentTree].hasEnd = true;
+                                insertInArray(arrayOfOldTreeClone, indexCurrentTree + necessaryEmptyCount(arrayOfOldTreeClone[indexCurrentTree].treeElement), {
+                                    isStart: false,
+                                    hasEnd: true,
+                                    isEnd: true,
+                                    treeElement: arrayOfOldTreeClone[indexCurrentTree].treeElement,
+                                    originPath: JSON.parse(JSON.stringify(arrayOfOldTreeClone[indexCurrentTree].originPath)),
+                                    currentPath: JSON.parse(JSON.stringify(arrayOfOldTreeClone[indexCurrentTree].currentPath)),
+                                    colorOperations: JSON.parse(JSON.stringify(arrayOfOldTreeClone[indexCurrentTree].colorOperations)),
+                                    emptyInOtherTree: true
+                                })
+                            }
+                        }
+
+
+                        arrayOfOldTreeClone[indexCurrentTree].treeElement.setAttribute('mode', children[i].getAttribute('mode'));
+                    }
                 }
 
                 for (let j = indexCurrentTree; j < indexCurrentTree + necessaryEmptyCount(arrayOfOldTreeClone[indexCurrentTree].treeElement); j++) {
                     arrayOfOldTreeClone[j].colorOperations.push("update");
-                    arrayOfOldTreeClone[j].colorOperations.push(escapeHtml(stringWithHtmlUpdated));
+                    if (j == indexCurrentTree || (j == indexCurrentTree + necessaryEmptyCount(arrayOfOldTreeClone[indexCurrentTree].treeElement) - 1 && arrayOfOldTreeClone[j].isEnd)) {
+                        arrayOfOldTreeClone[j].colorOperations.push(escapeHtml(stringWithHtmlUpdated))
+                    } else {
+                        arrayOfOldTreeClone[j].colorOperations.push('')
+                    }
 
                 }
 
@@ -375,7 +413,6 @@ function displayBothTrees2(oldTreeXML, oldDivId, oldSvgId, newTreeXML, newDivId,
             }
         }
     }
-
 
 
     displayOneTree2(oldDivId, oldSvgId, oldXmlDoc, insertsArray, deleteArray, moveOldArray, moveNewArray, updateArray)
@@ -622,29 +659,30 @@ function deleteFromArrayAccordingToPath(arrayOfTree, oldPath, oldArrayOfTree) {
 
 }
 
-function getIndexFromArrayAccordingToPath(arrayOfTree, oldPath) {
+function getIndexFromArrayAccordingToPath(arrayOfTree, oldPath, isPathFromUpdate) {
     for (let i = 0; i < arrayOfTree.length; i++) {
         if (arrayOfTree[i].currentPath + "" == oldPath + "") {
             return i;
         }
     }
 
-    oldPath = oldPath.slice(0, oldPath.length - 1);
+    if (isPathFromUpdate) {
+        oldPath = oldPath.slice(0, oldPath.length - 1);
 
-    for (let i = 0; i < arrayOfTree.length; i++) {
-        if (arrayOfTree[i].currentPath + "" == oldPath + "") {
-            return i;
+        for (let i = 0; i < arrayOfTree.length; i++) {
+            if (arrayOfTree[i].currentPath + "" == oldPath + "") {
+                return i;
+            }
+        }
+
+        oldPath = oldPath.slice(0, oldPath.length - 1);
+
+        for (let i = 0; i < arrayOfTree.length; i++) {
+            if (arrayOfTree[i].currentPath + "" == oldPath + "") {
+                return i;
+            }
         }
     }
-
-    oldPath = oldPath.slice(0, oldPath.length - 1);
-
-    for (let i = 0; i < arrayOfTree.length; i++) {
-        if (arrayOfTree[i].currentPath + "" == oldPath + "") {
-            return i;
-        }
-    }
-
     throw new Error("Could not find path");
 }
 
@@ -694,26 +732,40 @@ function childrenToArray(rootNode, pathRootNode, indexStartRootInArray, arrayOfT
         newPath.push(i);
         switch (children[i].nodeName) {
             case "loop":
-                insertInArray(arrayOfTree, indexStartRootInArray + (i + 1), {
-                    isStart: true,
-                    hasEnd: true,
-                    isEnd: false,
-                    treeElement: children[i],
-                    originPath: isOriginPathEmpty ? [] : JSON.parse(JSON.stringify(newPath)),
-                    currentPath: JSON.parse(JSON.stringify(newPath)),
-                    colorOperations: [],
-                    emptyInOtherTree: false
-                })
-                insertInArray(arrayOfTree, indexStartRootInArray + (i + 2), {
-                    isStart: false,
-                    hasEnd: true,
-                    isEnd: true,
-                    treeElement: children[i],
-                    originPath: isOriginPathEmpty ? [] : JSON.parse(JSON.stringify(newPath)),
-                    currentPath: JSON.parse(JSON.stringify(newPath)),
-                    colorOperations: [],
-                    emptyInOtherTree: false
-                })
+                let mode = children[i].getAttribute('mode')
+                if (mode && mode == "pre_test") {
+                    insertInArray(arrayOfTree, indexStartRootInArray + (i + 1), {
+                        isStart: true,
+                        hasEnd: false,
+                        isEnd: false,
+                        treeElement: children[i],
+                        originPath: isOriginPathEmpty ? [] : JSON.parse(JSON.stringify(newPath)),
+                        currentPath: JSON.parse(JSON.stringify(newPath)),
+                        colorOperations: [],
+                        emptyInOtherTree: false
+                    })
+                } else {
+                    insertInArray(arrayOfTree, indexStartRootInArray + (i + 1), {
+                        isStart: true,
+                        hasEnd: true,
+                        isEnd: false,
+                        treeElement: children[i],
+                        originPath: isOriginPathEmpty ? [] : JSON.parse(JSON.stringify(newPath)),
+                        currentPath: JSON.parse(JSON.stringify(newPath)),
+                        colorOperations: [],
+                        emptyInOtherTree: false
+                    })
+                    insertInArray(arrayOfTree, indexStartRootInArray + (i + 2), {
+                        isStart: false,
+                        hasEnd: true,
+                        isEnd: true,
+                        treeElement: children[i],
+                        originPath: isOriginPathEmpty ? [] : JSON.parse(JSON.stringify(newPath)),
+                        currentPath: JSON.parse(JSON.stringify(newPath)),
+                        colorOperations: [],
+                        emptyInOtherTree: false
+                    })
+                }
                 childrenToArray(children[i], newPath, indexStartRootInArray + (i + 1), arrayOfTree, isOriginPathEmpty);
                 break;
             default:
@@ -735,26 +787,40 @@ function childrenToArray(rootNode, pathRootNode, indexStartRootInArray, arrayOfT
 function insertXMLElementInArray(element, originPath, currentPath, index, arrayOfTree) {
     switch (element.nodeName) {
         case "loop":
-            insertInArray(arrayOfTree, index, {
-                isStart: true,
-                hasEnd: true,
-                isEnd: false,
-                treeElement: element,
-                originPath: JSON.parse(JSON.stringify(originPath)),
-                currentPath: JSON.parse(JSON.stringify(currentPath)),
-                colorOperations: [],
-                emptyInOtherTree: false
-            })
-            insertInArray(arrayOfTree, index + 1, {
-                isStart: false,
-                hasEnd: true,
-                isEnd: true,
-                treeElement: element,
-                originPath: JSON.parse(JSON.stringify(originPath)),
-                currentPath: JSON.parse(JSON.stringify(currentPath)),
-                colorOperations: [],
-                emptyInOtherTree: false
-            })
+            let mode = element.getAttribute('mode')
+            if (mode && mode == "pre_test") {
+                insertInArray(arrayOfTree, index, {
+                    isStart: true,
+                    hasEnd: false,
+                    isEnd: false,
+                    treeElement: element,
+                    originPath: JSON.parse(JSON.stringify(originPath)),
+                    currentPath: JSON.parse(JSON.stringify(currentPath)),
+                    colorOperations: [],
+                    emptyInOtherTree: false
+                })
+            } else {
+                insertInArray(arrayOfTree, index, {
+                    isStart: true,
+                    hasEnd: true,
+                    isEnd: false,
+                    treeElement: element,
+                    originPath: JSON.parse(JSON.stringify(originPath)),
+                    currentPath: JSON.parse(JSON.stringify(currentPath)),
+                    colorOperations: [],
+                    emptyInOtherTree: false
+                })
+                insertInArray(arrayOfTree, index + 1, {
+                    isStart: false,
+                    hasEnd: true,
+                    isEnd: true,
+                    treeElement: element,
+                    originPath: JSON.parse(JSON.stringify(originPath)),
+                    currentPath: JSON.parse(JSON.stringify(currentPath)),
+                    colorOperations: [],
+                    emptyInOtherTree: false
+                })
+            }
             childrenToArray(element, currentPath, index, arrayOfTree, true);
             break;
         default:
@@ -822,7 +888,12 @@ function necessaryEmptyCount(node) {
     let count = 0;
     switch (node.nodeName) {
         case "loop":
-            count += 2;
+            let mode = node.getAttribute('mode')
+            if (mode && mode == "pre_test") {
+                count += 1;
+            } else {
+                count += 2;
+            }
             for (let i = 0; i < node.children.length; i++) {
                 count += necessaryEmptyCount(node.children[i]);
             }
