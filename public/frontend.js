@@ -796,7 +796,6 @@ function childrenToArray(rootNode, pathRootNode, indexStartRootInArray, arrayOfT
             case "alternative":
             case "otherwise":
             case "critical":
-            case "parallel_branch":
                 insertInArray(arrayOfTree, indexStartRootInArray + (j + 1), {
                     isStart: true,
                     hasEnd: false,
@@ -808,6 +807,51 @@ function childrenToArray(rootNode, pathRootNode, indexStartRootInArray, arrayOfT
                     emptyInOtherTree: false
                 })
                 childrenToArray(children[i], newPath, indexStartRootInArray + (j + 1), arrayOfTree, isOriginPathEmpty)
+                break;
+            case "parallel_branch":
+                let parallelOnlyHasParallelBranches = true;
+                for (let j = 0; j < children.length; j++) {
+                    if (children[j].nodeName != "parallel_branch") {
+                        parallelOnlyHasParallelBranches = false;
+                    }
+                }
+                if (rootNode.nodeName != "parallel") {
+                    parallelOnlyHasParallelBranches = false;
+                }
+                if (parallelOnlyHasParallelBranches) {
+                    insertInArray(arrayOfTree, indexStartRootInArray + (j + 1), {
+                        isStart: true,
+                        hasEnd: false,
+                        isEnd: false,
+                        treeElement: children[i],
+                        originPath: isOriginPathEmpty ? [] : JSON.parse(JSON.stringify(newPath)),
+                        currentPath: JSON.parse(JSON.stringify(newPath)),
+                        colorOperations: [],
+                        emptyInOtherTree: false
+                    })
+                } else {
+                    insertInArray(arrayOfTree, indexStartRootInArray + (j + 1), {
+                        isStart: true,
+                        hasEnd: true,
+                        isEnd: false,
+                        treeElement: children[i],
+                        originPath: isOriginPathEmpty ? [] : JSON.parse(JSON.stringify(newPath)),
+                        currentPath: JSON.parse(JSON.stringify(newPath)),
+                        colorOperations: [],
+                        emptyInOtherTree: false
+                    })
+                    insertInArray(arrayOfTree, indexStartRootInArray + (j + 2), {
+                        isStart: false,
+                        hasEnd: true,
+                        isEnd: true,
+                        treeElement: children[i],
+                        originPath: isOriginPathEmpty ? [] : JSON.parse(JSON.stringify(newPath)),
+                        currentPath: JSON.parse(JSON.stringify(newPath)),
+                        colorOperations: [],
+                        emptyInOtherTree: false
+                    })
+                }
+                childrenToArray(children[i], newPath, indexStartRootInArray + (j + 1), arrayOfTree, isOriginPathEmpty);
                 break;
             default:
                 insertInArray(arrayOfTree, indexStartRootInArray + (j + 1), {
@@ -891,7 +935,6 @@ function insertXMLElementInArray(element, originPath, currentPath, index, arrayO
         case "alternative":
         case "otherwise":
         case "critical":
-        case "parallel_branch":
             insertInArray(arrayOfTree, index, {
                 isStart: true,
                 hasEnd: false,
@@ -902,6 +945,52 @@ function insertXMLElementInArray(element, originPath, currentPath, index, arrayO
                 colorOperations: [],
                 emptyInOtherTree: false
             })
+            childrenToArray(element, currentPath, index, arrayOfTree, true);
+            break;
+        case "parallel_branch":
+            let parallelOnlyHasParallelBranches = true;
+            let siblings = element.parentNode.children;
+            for (let j = 0; j < siblings.length; j++) {
+                if (siblings[j].nodeName != "parallel_branch") {
+                    parallelOnlyHasParallelBranches = false;
+                }
+            }
+            if (element.parentNode.nodeName != "parallel") {
+                parallelOnlyHasParallelBranches = false;
+            }
+            if (parallelOnlyHasParallelBranches) {
+                insertInArray(arrayOfTree, index, {
+                    isStart: true,
+                    hasEnd: false,
+                    isEnd: false,
+                    treeElement: element,
+                    originPath: JSON.parse(JSON.stringify(originPath)),
+                    currentPath: JSON.parse(JSON.stringify(currentPath)),
+                    colorOperations: [],
+                    emptyInOtherTree: false
+                })
+            } else {
+                insertInArray(arrayOfTree, index, {
+                    isStart: true,
+                    hasEnd: true,
+                    isEnd: false,
+                    treeElement: element,
+                    originPath: JSON.parse(JSON.stringify(originPath)),
+                    currentPath: JSON.parse(JSON.stringify(currentPath)),
+                    colorOperations: [],
+                    emptyInOtherTree: false
+                })
+                insertInArray(arrayOfTree, index + 1, {
+                    isStart: false,
+                    hasEnd: true,
+                    isEnd: true,
+                    treeElement: element,
+                    originPath: JSON.parse(JSON.stringify(originPath)),
+                    currentPath: JSON.parse(JSON.stringify(currentPath)),
+                    colorOperations: [],
+                    emptyInOtherTree: false
+                })
+            }
             childrenToArray(element, currentPath, index, arrayOfTree, true);
             break;
         default:
@@ -989,8 +1078,27 @@ function necessaryEmptyCount(node) {
         case "alternative":
         case "otherwise":
         case "critical":
-        case "parallel_branch":
             count += 1;
+            for (let i = 0; i < node.children.length; i++) {
+                count += necessaryEmptyCount(node.children[i]);
+            }
+            break;
+        case "parallel_branch":
+            let parallelOnlyHasParallelBranches = true;
+            let siblings = node.parentNode.children;
+            for (let j = 0; j < siblings.length; j++) {
+                if (siblings[j].nodeName != "parallel_branch") {
+                    parallelOnlyHasParallelBranches = false;
+                }
+            }
+            if (node.parentNode.nodeName != "parallel") {
+                parallelOnlyHasParallelBranches = false;
+            }
+            if (parallelOnlyHasParallelBranches) {
+                count += 1;
+            } else {
+                count += 2;
+            }
             for (let i = 0; i < node.children.length; i++) {
                 count += necessaryEmptyCount(node.children[i]);
             }
