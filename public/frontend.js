@@ -3,7 +3,7 @@ let oldTreeText = '';
 let newTreeText = '';
 let cacheGlobal = '<cache></cache>'
 
-function createBibliography() {
+function createBibliography2() {
     const colors = ['#87DEB3', '#92ceec', '#e3e372', '#FA9D9D', '#7eb3cd'];
     const explanations = [
         'Color 1 represents: Explanation 1',
@@ -14,6 +14,7 @@ function createBibliography() {
     ];
 
     const table = document.createElement('table');
+    table.style.borderCollapse = 'collapse'; // Add this to collapse borders
 
     for (let i = 0; i < 5; i++) {
         const row = document.createElement('tr');
@@ -22,20 +23,89 @@ function createBibliography() {
         const colorCell = document.createElement('td');
         colorCell.style.backgroundColor = colors[i];
         colorCell.style.width = '20px'; // Adjust the width as needed
+        colorCell.style.border = '1px solid black'; // Add this to set border
         row.appendChild(colorCell);
 
         // Create the explanation cell
         const explanationCell = document.createElement('td');
         explanationCell.textContent = explanations[i];
+        explanationCell.style.border = '1px solid black'; // Add this to set border
         row.appendChild(explanationCell);
 
         table.appendChild(row);
     }
 
-    // Add the table to the 'diffOutput' div (upper right corner)
-    const diffOutputDiv = document.getElementById('bibliography');
-    diffOutputDiv.appendChild(table);
+    // Add the table to the 'bibliography' div (upper right corner)
+    const bibliographyDiv = document.getElementById('bibliography');
+    bibliographyDiv.appendChild(table);
 }
+function createBibliography() {
+    const colors = [
+        ['#ABF5D1', '#87DEB3'],
+        ['#FA9D9D', '#FA8383'],
+        ['#92ceec', '#7eb3cd'],
+        ['#e3e372', '#cdcd67'],
+        ['#92ceec', '#7eb3cd'],
+    ];
+
+    const explanations = [
+        "Green rows: Newly added elements in the new tree.",
+        "Red rows: Elements deleted from the old tree.",
+        "Blue rows: Elements moved to new positions in the new tree.",
+        "Yellow rows: Elements updated in the new tree.",
+        "Striped (blue/yellow) rows: Elements updated and relocated in the new tree."
+    ];
+
+    const table = document.createElement('table');
+    table.style.borderCollapse = 'collapse';
+
+    for (let i = 0; i < colors.length; i++) {
+        const row = document.createElement('tr');
+
+        // Create the color stripe cells
+        for (let j = 0; j < colors[i].length; j++) {
+            const colorCell = document.createElement('td');
+            colorCell.style.backgroundColor = colors[i][j];
+            colorCell.style.width = '100px'; // Adjust the width as needed
+            colorCell.style.border = '1px solid black';
+            // Striped rows
+            if (i == 4) {
+                if (j ==0) {
+                    colorCell.style.backgroundImage = 'linear-gradient(45deg, #e3e372 25%, transparent 25%, transparent 50%, #e3e372 50%, #e3e372 75%, transparent 75%, #92ceec)'
+                } else {
+                    colorCell.style.backgroundImage = 'linear-gradient(45deg, #cdcd67 25%, transparent 25%, transparent 50%, #cdcd67 50%, #cdcd67 75%, transparent 75%, #7eb3cd)'
+                }
+                colorCell.style.backgroundSize = '50px 50px';
+            }
+            row.appendChild(colorCell);
+        }
+
+        // Create the explanation cell
+        const explanationCell = document.createElement('td');
+        explanationCell.textContent = explanations[i];
+        explanationCell.style.border = '1px solid black';
+        row.appendChild(explanationCell);
+
+        table.appendChild(row);
+    }
+
+    // Add "Important: !" row as the last row
+    const lastRow = document.createElement('tr');
+    const importantCell = document.createElement('td');
+    importantCell.textContent = "Important: All child nodes of parallel nodes must be parallel branch nodes!";
+    importantCell.style.border = '1px solid black';
+    importantCell.style.textAlign = 'center';
+    importantCell.style.fontWeight = 'bold';
+    importantCell.style.backgroundColor = '#FFFF99'; // Yellow background
+    importantCell.colSpan = 3; // Span across all columns
+    lastRow.appendChild(importantCell);
+    table.appendChild(lastRow);
+
+
+    const bibliographyDiv = document.getElementById('bibliography');
+    bibliographyDiv.appendChild(table);
+}
+
 
 function uploadTrees() {
     const fileInput1 = document.getElementById('fileInput1');
@@ -51,11 +121,11 @@ function uploadTrees() {
     const reader1 = new FileReader();
     const reader2 = new FileReader();
 
-    let promise = new Promise((resolve, reject) => {
+    let readFilesAndGetDiff = new Promise(resolve => {
         reader1.onload = function (event) {
             const content1 = event.target.result;
             reader2.readAsText(files2[0]);
-            let promise2 = new Promise(resolve2 => {
+            let combineTreesAndSendToServer = new Promise(resolve2 => {
                 reader2.onload = function (event) {
                     const content2 = event.target.result;
 
@@ -71,11 +141,11 @@ function uploadTrees() {
                 }
             })
 
-            promise2.then(() => resolve());
+            combineTreesAndSendToServer.then(() => resolve());
         }
     })
     reader1.readAsText(files1[0]);
-    return promise;
+    return readFilesAndGetDiff;
 }
 
 // Function to send the process trees to the backend server
